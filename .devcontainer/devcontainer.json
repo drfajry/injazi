@@ -1,0 +1,24 @@
+{
+"name": "Injazi Development",
+"image": "ghcr.io/techiro/devcontainer-template/flutter:1.0.0",
+"features": {
+"ghcr.io/devcontainers/features/node:1": {
+"version": "24"
+},
+"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+"moby": true,
+"installDockerBuildx": true,
+"dockerDashComposeVersion": "v2"
+}
+},
+"forwardPorts": [4000],
+"customizations": {
+"vscode": {
+"extensions": [
+"Dart-Code.flutter",
+"Dart-Code.dart-code"
+]
+}
+},
+"postCreateCommand": "cd injazi-backend && npm install && cd ../injazi-flutter && flutter pub get"
+}
