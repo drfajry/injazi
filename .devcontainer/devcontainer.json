@@ -1,6 +1,8 @@
 {
 "name": "Injazi Development",
-"image": "ghcr.io/techiro/devcontainer-template/flutter:1.0.0",
+"build": {
+"dockerfile": "Dockerfile"
+},
 "features": {
 "ghcr.io/devcontainers/features/node:1": {
 "version": "24"
@@ -20,5 +22,5 @@
 ]
 }
 },
-"postCreateCommand": "cd injazi-backend && npm install && cd ../injazi-flutter && flutter pub get"
+"postCreateCommand": "cd injazi-backend && npm install && npx prisma generate && cd ../injazi-flutter && flutter pub get"
 }
