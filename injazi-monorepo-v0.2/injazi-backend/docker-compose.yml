@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: injazi-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: injazi
+      POSTGRES_PASSWORD: injazi
+      POSTGRES_DB: injazi
+    ports:
+      - "5432:5432"
+    volumes:
+      - injazi_pgdata:/var/lib/postgresql/data
+volumes:
+  injazi_pgdata:
