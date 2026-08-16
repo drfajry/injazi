@@ -1,35 +1,35 @@
 ﻿{
-"name": "إنجازي",
-"short_name": "إنجازي",
-"start_url": ".",
-"display": "standalone",
-"background_color": "#F7F9FC",
-"theme_color": "#0F766E",
-"description": "إنجازي - منصة ذكية تساعد المعلم على بناء ملف الإنجاز تلقائيًا.",
-"orientation": "portrait-primary",
-"prefer_related_applications": false,
-"icons": [
-{
-"src": "icons/Icon-192.png",
-"sizes": "192x192",
-"type": "image/png"
-},
-{
-"src": "icons/Icon-512.png",
-"sizes": "512x512",
-"type": "image/png"
-},
-{
-"src": "icons/Icon-maskable-192.png",
-"sizes": "192x192",
-"type": "image/png",
-"purpose": "maskable"
-},
-{
-"src": "icons/Icon-maskable-512.png",
-"sizes": "512x512",
-"type": "image/png",
-"purpose": "maskable"
-}
-]
+  "name": "\u0625\u0646\u062c\u0627\u0632\u064a",
+  "short_name": "\u0625\u0646\u062c\u0627\u0632\u064a",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#F7F9FC",
+  "theme_color": "#0F766E",
+  "description": "\u0625\u0646\u062c\u0627\u0632\u064a - \u0645\u0646\u0635\u0629 \u0630\u0643\u064a\u0629 \u062a\u0633\u0627\u0639\u062f \u0627\u0644\u0645\u0639\u0644\u0645 \u0639\u0644\u0649 \u0628\u0646\u0627\u0621 \u0645\u0644\u0641 \u0627\u0644\u0625\u0646\u062c\u0627\u0632 \u062a\u0644\u0642\u0627\u0626\u064a\u064b\u0627.",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icons/Icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/Icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/Icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/Icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
 }
