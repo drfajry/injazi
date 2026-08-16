@@ -1,291 +1,292 @@
 generator client {
-  provider = "prisma-client-js"
+provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+provider = "postgresql"
+url      = env("DATABASE_URL")
 }
 
 enum AuthProvider {
-  GOOGLE
-  EMAIL
+GOOGLE
+EMAIL
 }
 
 enum SourceType {
-  MADRASATI
-  GOOGLE_DRIVE
-  MANUAL
+MADRASATI
+GOOGLE_DRIVE
+MANUAL
 }
 
 enum SourceStatus {
-  CONNECTED
-  DISCONNECTED
-  ERROR
-  PENDING
+CONNECTED
+DISCONNECTED
+ERROR
+PENDING
 }
 
 enum EvidenceStatus {
-  DISCOVERED
-  ANALYZING
-  SUGGESTED
-  APPROVED
-  REJECTED
-  DUPLICATE
-  ARCHIVED
+DISCOVERED
+ANALYZING
+SUGGESTED
+APPROVED
+REJECTED
+DUPLICATE
+ARCHIVED
 }
 
 enum EvidenceType {
-  PLAN
-  ACTIVITY
-  ASSIGNMENT
-  ASSESSMENT
-  REPORT
-  CERTIFICATE
-  AWARD
-  INITIATIVE
-  PROJECT
-  PRESENTATION
-  IMAGE
-  VIDEO
-  DOCUMENT
-  LINK
-  OTHER
+PLAN
+ACTIVITY
+ASSIGNMENT
+ASSESSMENT
+REPORT
+CERTIFICATE
+AWARD
+INITIATIVE
+PROJECT
+PRESENTATION
+IMAGE
+VIDEO
+DOCUMENT
+LINK
+OTHER
 }
 
 model User {
-  id                String             @id @default(cuid())
-  email             String             @unique
-  authProvider      AuthProvider
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  profile           TeacherProfile?
-  sources           ConnectedSource[]
-  evidence          Evidence[]
-  achievements      Achievement[]
-  portfolioSections PortfolioSection[]
-  portfolioVersions PortfolioVersion[]
-  subscriptions     Subscription[]
-  aiJobs            AiJob[]
-  auditLogs         AuditLog[]
+id                String             @id @default(cuid())
+email             String             @unique
+passwordHash      String?
+authProvider      AuthProvider
+createdAt         DateTime           @default(now())
+updatedAt         DateTime           @updatedAt
+profile           TeacherProfile?
+sources           ConnectedSource[]
+evidence          Evidence[]
+achievements      Achievement[]
+portfolioSections PortfolioSection[]
+portfolioVersions PortfolioVersion[]
+subscriptions     Subscription[]
+aiJobs            AiJob[]
+auditLogs         AuditLog[]
 }
 
 model School {
-  id        String            @id @default(cuid())
-  name      String
-  district  String?
-  city      String?
-  teachers  TeacherProfile[]
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
+id        String            @id @default(cuid())
+name      String
+district  String?
+city      String?
+teachers  TeacherProfile[]
+createdAt DateTime          @default(now())
+updatedAt DateTime          @updatedAt
 }
 
 model TeacherProfile {
-  id             String   @id @default(cuid())
-  userId         String   @unique
-  name           String
-  schoolId       String?
-  stage          String?
-  subject        String?
-  photoUrl       String?
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  school         School?  @relation(fields: [schoolId], references: [id], onDelete: SetNull)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+id        String   @id @default(cuid())
+userId    String   @unique
+name      String
+schoolId  String?
+stage     String?
+subject   String?
+photoUrl  String?
+user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+school    School?  @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
 }
 
 model AcademicYear {
-  id        String     @id @default(cuid())
-  name      String     @unique
-  startDate DateTime?
-  endDate   DateTime?
-  isActive  Boolean    @default(false)
-  evidence  Evidence[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+id        String     @id @default(cuid())
+name      String     @unique
+startDate DateTime?
+endDate   DateTime?
+isActive  Boolean    @default(false)
+evidence  Evidence[]
+createdAt DateTime   @default(now())
+updatedAt DateTime   @updatedAt
 }
 
 model ConnectedSource {
-  id                String       @id @default(cuid())
-  userId            String
-  type              SourceType
-  status            SourceStatus @default(PENDING)
-  externalAccountId String?
-  metadata          Json?
-  lastSyncAt        DateTime?
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items             SourceItem[]
+id                String       @id @default(cuid())
+userId            String
+type              SourceType
+status            SourceStatus @default(PENDING)
+externalAccountId String?
+metadata          Json?
+lastSyncAt        DateTime?
+createdAt         DateTime     @default(now())
+updatedAt         DateTime     @updatedAt
+user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+items             SourceItem[]
 }
 
 model SourceItem {
-  id         String          @id @default(cuid())
-  sourceId   String
-  externalId String
-  itemType   String?
-  title      String?
-  url        String?
-  checksum   String?
-  metadata   Json?
-  discoveredAt DateTime      @default(now())
-  source     ConnectedSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
-  evidence   Evidence?
-  @@unique([sourceId, externalId])
-  @@index([checksum])
+id           String          @id @default(cuid())
+sourceId     String
+externalId   String
+itemType     String?
+title        String?
+url          String?
+checksum     String?
+metadata     Json?
+discoveredAt DateTime        @default(now())
+source       ConnectedSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+evidence     Evidence?
+@@unique([sourceId, externalId])
+@@index([checksum])
 }
 
 model Criterion {
-  id          String      @id
-  code        String      @unique
-  name        String
-  description String?
-  indicators  Indicator[]
+id          String      @id
+code        String      @unique
+name        String
+description String?
+indicators  Indicator[]
 }
 
 model Indicator {
-  id          String         @id
-  criterionId String
-  code        String         @unique
-  name        String
-  description String?
-  weight      Float          @default(1)
-  criterion   Criterion      @relation(fields: [criterionId], references: [id], onDelete: Cascade)
-  links       EvidenceIndicatorLink[]
+id          String                  @id
+criterionId String
+code        String                  @unique
+name        String
+description String?
+weight      Float                   @default(1)
+criterion   Criterion               @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+links       EvidenceIndicatorLink[]
 }
 
 model Evidence {
-  id             String      @id @default(cuid())
-  userId         String
-  academicYearId String?
-  sourceItemId   String?     @unique
-  type           EvidenceType
-  title          String
-  description    String?
-  eventDate      DateTime?
-  confidence     Float       @default(0)
-  status         EvidenceStatus @default(DISCOVERED)
-  canonicalId    String?
-  metadata       Json?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  academicYear   AcademicYear? @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
-  sourceItem     SourceItem? @relation(fields: [sourceItemId], references: [id], onDelete: SetNull)
-  files          EvidenceFile[]
-  links          EvidenceIndicatorLink[]
-  @@index([userId, academicYearId])
-  @@index([userId, status])
+id             String                   @id @default(cuid())
+userId         String
+academicYearId String?
+sourceItemId   String?                  @unique
+type           EvidenceType
+title          String
+description    String?
+eventDate      DateTime?
+confidence     Float                    @default(0)
+status         EvidenceStatus           @default(DISCOVERED)
+canonicalId    String?
+metadata       Json?
+createdAt      DateTime                 @default(now())
+updatedAt      DateTime                 @updatedAt
+user           User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+academicYear   AcademicYear?             @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
+sourceItem     SourceItem?               @relation(fields: [sourceItemId], references: [id], onDelete: SetNull)
+files          EvidenceFile[]
+links          EvidenceIndicatorLink[]
+@@index([userId, academicYearId])
+@@index([userId, status])
 }
 
 model EvidenceFile {
-  id          String   @id @default(cuid())
-  evidenceId  String
-  storageKey  String
-  mimeType    String
-  size        Int?
-  checksum    String?
-  createdAt   DateTime @default(now())
-  evidence    Evidence @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
-  @@index([checksum])
+id          String   @id @default(cuid())
+evidenceId  String
+storageKey  String
+mimeType    String
+size        Int?
+checksum    String?
+createdAt   DateTime @default(now())
+evidence    Evidence @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+@@index([checksum])
 }
 
 model EvidenceIndicatorLink {
-  evidenceId  String
-  indicatorId String
-  matchScore  Float
-  rationale   String?
-  modelVersion String?
-  evidence    Evidence  @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
-  indicator   Indicator @relation(fields: [indicatorId], references: [id], onDelete: Cascade)
-  @@id([evidenceId, indicatorId])
-  @@index([indicatorId, matchScore])
+evidenceId   String
+indicatorId  String
+matchScore   Float
+rationale    String?
+modelVersion String?
+evidence     Evidence  @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+indicator    Indicator @relation(fields: [indicatorId], references: [id], onDelete: Cascade)
+@@id([evidenceId, indicatorId])
+@@index([indicatorId, matchScore])
 }
 
 model Achievement {
-  id            String        @id @default(cuid())
-  userId        String
-  academicYearId String?
-  title         String
-  organization  String?
-  date          DateTime?
-  description   String?
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  certificate   Certificate?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+id            String        @id @default(cuid())
+userId        String
+academicYearId String?
+title         String
+organization  String?
+date          DateTime?
+description   String?
+user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+certificate   Certificate?
+createdAt     DateTime      @default(now())
+updatedAt     DateTime      @updatedAt
 }
 
 model Certificate {
-  id            String      @id @default(cuid())
-  achievementId String      @unique
-  certificateNo String?
-  hours         Float?
-  issuer        String?
-  fileId        String?
-  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+id            String      @id @default(cuid())
+achievementId String      @unique
+certificateNo String?
+hours         Float?
+issuer        String?
+fileId        String?
+achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
 }
 
 model PortfolioSection {
-  id             String   @id @default(cuid())
-  userId         String
-  academicYearId String?
-  sectionKey     String
-  title          String
-  sortOrder      Int      @default(0)
-  visibility     String   @default("PRIVATE")
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+id             String   @id @default(cuid())
+userId         String
+academicYearId String?
+sectionKey     String
+title          String
+sortOrder      Int      @default(0)
+visibility     String   @default("PRIVATE")
+user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model PortfolioVersion {
-  id             String   @id @default(cuid())
-  userId         String
-  academicYearId String?
-  versionNo      Int
-  generatedAt    DateTime @default(now())
-  pdfKey         String?
-  publicSlug     String?
-  visibility     String   @default("PRIVATE")
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  @@unique([userId, versionNo])
-  @@index([publicSlug])
+id             String   @id @default(cuid())
+userId         String
+academicYearId String?
+versionNo      Int
+generatedAt    DateTime @default(now())
+pdfKey         String?
+publicSlug     String?
+visibility     String   @default("PRIVATE")
+user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+@@unique([userId, versionNo])
+@@index([publicSlug])
 }
 
 model Subscription {
-  id        String   @id @default(cuid())
-  userId    String
-  plan      String
-  status    String
-  startsAt  DateTime?
-  endsAt    DateTime?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+id        String   @id @default(cuid())
+userId    String
+plan      String
+status    String
+startsAt  DateTime?
+endsAt    DateTime?
+user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model AiJob {
-  id          String   @id @default(cuid())
-  userId      String
-  jobType     String
-  entityType  String?
-  entityId    String?
-  status      String   @default("QUEUED")
-  model       String?
-  input       Json?
-  output      Json?
-  error       String?
-  startedAt   DateTime?
-  finishedAt  DateTime?
-  createdAt   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+id          String   @id @default(cuid())
+userId      String
+jobType     String
+entityType  String?
+entityId    String?
+status      String   @default("QUEUED")
+model       String?
+input       Json?
+output      Json?
+error       String?
+startedAt   DateTime?
+finishedAt  DateTime?
+createdAt   DateTime @default(now())
+user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model AuditLog {
-  id         String   @id @default(cuid())
-  userId     String?
-  action     String
-  entityType String?
-  entityId   String?
-  metadata   Json?
-  createdAt  DateTime @default(now())
-  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  @@index([userId, createdAt])
+id         String   @id @default(cuid())
+userId     String?
+action     String
+entityType String?
+entityId   String?
+metadata   Json?
+createdAt  DateTime @default(now())
+user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+@@index([userId, createdAt])
 }
