@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -8,7 +8,7 @@ class SourcesScreen extends StatelessWidget {
   Future<void> _uploadFile(BuildContext context) async {
     await FilePicker.platform.pickFiles(allowMultiple: false);
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم اختيار الملف. سنربطه بالـAPI لاحقًا.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('طھظ… ط§ط®طھظٹط§ط± ط§ظ„ظ…ظ„ظپ. ط³ظ†ط±ط¨ط·ظ‡ ط¨ط§ظ„ظ€API ظ„ط§ط­ظ‚ظ‹ط§.')));
     }
   }
 
@@ -16,7 +16,7 @@ class SourcesScreen extends StatelessWidget {
     final picker = ImagePicker();
     await picker.pickImage(source: ImageSource.camera);
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم التقاط الصورة. سنرفعها للـAPI لاحقًا.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('طھظ… ط§ظ„طھظ‚ط§ط· ط§ظ„طµظˆط±ط©. ط³ظ†ط±ظپط¹ظ‡ط§ ظ„ظ„ظ€API ظ„ط§ط­ظ‚ظ‹ط§.')));
     }
   }
 
@@ -25,17 +25,17 @@ class SourcesScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 40),
       children: [
-        const Text('مصادر الأدلة', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
+        const Text('ظ…طµط§ط¯ط± ط§ظ„ط£ط¯ظ„ط©', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
-        const Text('اربط مصادرك مرة واحدة، وإنجازي يبحث عن الأدلة نيابةً عنك.', style: TextStyle(color: Color(0xFF64748B))),
+        const Text('ط§ط±ط¨ط· ظ…طµط§ط¯ط±ظƒ ظ…ط±ط© ظˆط§ط­ط¯ط©طŒ ظˆط¥ظ†ط¬ط§ط²ظٹ ظٹط¨ط­ط« ط¹ظ† ط§ظ„ط£ط¯ظ„ط© ظ†ظٹط§ط¨ط©ظ‹ ط¹ظ†ظƒ.', style: TextStyle(color: Color(0xFF64748B))),
         const SizedBox(height: 22),
-        _SourceCard(icon: Icons.school_outlined, title: 'مدرستي', subtitle: 'اكتشاف أعمالك التعليمية تلقائيًا', button: 'ربط مدرستي', onTap: () {}),
+        _SourceCard(icon: Icons.school_outlined, title: 'ظ…ط¯ط±ط³طھظٹ', subtitle: 'ط§ظƒطھط´ط§ظپ ط£ط¹ظ…ط§ظ„ظƒ ط§ظ„طھط¹ظ„ظٹظ…ظٹط© طھظ„ظ‚ط§ط¦ظٹظ‹ط§', button: 'ط±ط¨ط· ظ…ط¯ط±ط³طھظٹ', onTap: () {}),
         const SizedBox(height: 12),
-        _SourceCard(icon: Icons.cloud_outlined, title: 'Google Drive', subtitle: 'البحث عن ملفاتك التعليمية', button: 'ربط Google', onTap: () {}),
+        _SourceCard(icon: Icons.cloud_outlined, title: 'Google Drive', subtitle: 'ط§ظ„ط¨ط­ط« ط¹ظ† ظ…ظ„ظپط§طھظƒ ط§ظ„طھط¹ظ„ظٹظ…ظٹط©', button: 'ط±ط¨ط· Google', onTap: () {}),
         const SizedBox(height: 12),
-        _SourceCard(icon: Icons.upload_file_outlined, title: 'رفع يدوي', subtitle: 'شهادة، صورة، ملف أو رابط', button: 'اختيار ملف', onTap: () => _uploadFile(context)),
+        _SourceCard(icon: Icons.upload_file_outlined, title: 'ط±ظپط¹ ظٹط¯ظˆظٹ', subtitle: 'ط´ظ‡ط§ط¯ط©طŒ طµظˆط±ط©طŒ ظ…ظ„ظپ ط£ظˆ ط±ط§ط¨ط·', button: 'ط§ط®طھظٹط§ط± ظ…ظ„ظپ', onTap: () => _uploadFile(context)),
         const SizedBox(height: 12),
-        _SourceCard(icon: Icons.camera_alt_outlined, title: 'تصوير شهادة', subtitle: 'التقاط شهادة وسيقرأها الذكاء الاصطناعي', button: 'التقاط', onTap: () => _capture(context)),
+        _SourceCard(icon: Icons.camera_alt_outlined, title: 'طھطµظˆظٹط± ط´ظ‡ط§ط¯ط©', subtitle: 'ط§ظ„طھظ‚ط§ط· ط´ظ‡ط§ط¯ط© ظˆط³ظٹظ‚ط±ط£ظ‡ط§ ط§ظ„ط°ظƒط§ط، ط§ظ„ط§طµط·ظ†ط§ط¹ظٹ', button: 'ط§ظ„طھظ‚ط§ط·', onTap: () => _capture(context)),
       ],
     );
   }
@@ -67,3 +67,4 @@ class _SourceCard extends StatelessWidget {
     ),
   );
 }
+

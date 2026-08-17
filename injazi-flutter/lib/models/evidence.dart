@@ -1,4 +1,4 @@
-class Evidence {
+﻿class Evidence {
   final String id;
   final String title;
   final String type;
@@ -20,12 +20,13 @@ class Evidence {
   factory Evidence.fromJson(Map<String, dynamic> json) {
     return Evidence(
       id: '${json['id'] ?? ''}',
-      title: '${json['title'] ?? 'دليل دون عنوان'}',
-      type: '${json['type'] ?? 'غير مصنف'}',
-      source: '${json['source'] ?? json['sourceType'] ?? 'يدوي'}',
+      title: '${json['title'] ?? 'ط¯ظ„ظٹظ„ ط¯ظˆظ† ط¹ظ†ظˆط§ظ†'}',
+      type: '${json['type'] ?? 'ط؛ظٹط± ظ…طµظ†ظپ'}',
+      source: '${json['source'] ?? json['sourceType'] ?? 'ظٹط¯ظˆظٹ'}',
       confidence: ((json['confidence'] ?? 0) as num).toDouble(),
       status: '${json['status'] ?? 'DISCOVERED'}',
       date: json['date']?.toString(),
     );
   }
 }
+

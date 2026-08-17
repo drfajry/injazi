@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class InjaziTheme {
   static const primary = Color(0xFF0F766E);
@@ -29,3 +29,4 @@ class InjaziTheme {
     );
   }
 }
+

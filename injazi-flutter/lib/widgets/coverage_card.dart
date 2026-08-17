@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class CoverageCard extends StatelessWidget {
   final double value;
@@ -18,11 +18,11 @@ class CoverageCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('ملف إنجازي', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+        const Text('ظ…ظ„ظپ ط¥ظ†ط¬ط§ط²ظٹ', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Text('$percent%', style: const TextStyle(color: Colors.white, fontSize: 42, fontWeight: FontWeight.w800)),
-          const Padding(padding: EdgeInsets.only(bottom: 8, right: 8), child: Text('مكتمل', style: TextStyle(color: Colors.white70))),
+          const Padding(padding: EdgeInsets.only(bottom: 8, right: 8), child: Text('ظ…ظƒطھظ…ظ„', style: TextStyle(color: Colors.white70))),
         ]),
         const SizedBox(height: 12),
         ClipRRect(
@@ -31,9 +31,9 @@ class CoverageCard extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         Wrap(spacing: 10, runSpacing: 8, children: [
-          _Pill('$complete مكتمل'),
-          _Pill('$needsSupport يحتاج دعم'),
-          _Pill('$missing بدون دليل'),
+          _Pill('$complete ظ…ظƒطھظ…ظ„'),
+          _Pill('$needsSupport ظٹط­طھط§ط¬ ط¯ط¹ظ…'),
+          _Pill('$missing ط¨ط¯ظˆظ† ط¯ظ„ظٹظ„'),
         ])
       ]),
     );
@@ -51,3 +51,4 @@ class _Pill extends StatelessWidget {
     child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 12)),
   );
 }
+

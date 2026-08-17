@@ -6,339 +6,256 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/evidence.dart';
 
 class ApiService {
-final String baseUrl;
-final http.Client _client;
+  final String baseUrl;
+  final http.Client _client;
 
-ApiService({
-required this.baseUrl,
-http.Client? client,
-}) : _client = client ?? http.Client();
+  ApiService({
+    required this.baseUrl,
+    http.Client? client,
+  }) : _client = client ?? http.Client();
 
-static const String _tokenKey = 'injazi_access_token';
-static const String _userIdKey = 'injazi_user_id';
-static const String _emailKey = 'injazi_email';
+  static const String _tokenKey = 'injazi_access_token';
+  static const String _userIdKey = 'injazi_user_id';
+  static const String _emailKey = 'injazi_email';
 
-Future<Map<String, dynamic>> login({
-required String email,
-required String password,
-}) async {
-final response = await _client.post(
-Uri.parse('$baseUrl/auth/login'),
-headers: {'Content-Type': 'application/json'},
-body: jsonEncode({
-'email': email.trim().toLowerCase(),
-'password': password,
-}),
-);
+  Future<Map<String, dynamic>> login({
+    required String email,
+    required String password,
+  }) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/auth/login'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email.trim().toLowerCase(),
+        'password': password,
+      }),
+    );
 
-```
-return _handleAuthResponse(response);
-```
-
-}
-
-Future<Map<String, dynamic>> register({
-required String email,
-required String password,
-}) async {
-final response = await _client.post(
-Uri.parse('$baseUrl/auth/register'),
-headers: {'Content-Type': 'application/json'},
-body: jsonEncode({
-'email': email.trim().toLowerCase(),
-'password': password,
-}),
-);
-
-```
-return _handleAuthResponse(response);
-```
-
-}
-
-Future<void> forgotPassword({
-required String email,
-}) async {
-final response = await _client.post(
-Uri.parse('$baseUrl/auth/forgot-password'),
-headers: {'Content-Type': 'application/json'},
-body: jsonEncode({
-'email': email.trim().toLowerCase(),
-}),
-);
-
-```
-if (response.statusCode < 200 || response.statusCode >= 300) {
-  final decoded = jsonDecode(response.body);
-
-  if (decoded is Map && decoded['error'] != null) {
-    throw Exception(decoded['error'].toString());
+    return _handleAuthResponse(response);
   }
 
-  throw Exception('Password reset request failed');
-}
-```
+  Future<Map<String, dynamic>> register({
+    required String email,
+    required String password,
+  }) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/auth/register'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email.trim().toLowerCase(),
+        'password': password,
+      }),
+    );
 
-}
-
-Future<Map<String, dynamic>> resetPassword({
-required String token,
-required String password,
-}) async {
-final response = await _client.post(
-Uri.parse('$baseUrl/auth/reset-password'),
-headers: {'Content-Type': 'application/json'},
-body: jsonEncode({
-'token': token,
-'password': password,
-}),
-);
-
-```
-if (response.statusCode < 200 || response.statusCode >= 300) {
-  final decoded = jsonDecode(response.body);
-
-  if (decoded is Map && decoded['error'] != null) {
-    throw Exception(decoded['error'].toString());
+    return _handleAuthResponse(response);
   }
 
-  throw Exception('Password reset failed');
-}
+  Future<Map<String, dynamic>> _handleAuthResponse(
+    http.Response response,
+  ) async {
+    final decoded = jsonDecode(response.body);
 
-return _handleAuthResponse(response);
-```
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      if (decoded is Map && decoded['error'] != null) {
+        throw Exception(decoded['error'].toString());
+      }
+      throw Exception('Authentication failed');
+    }
 
-}
+    final data = Map<String, dynamic>.from(
+      decoded['data'] as Map? ?? <String, dynamic>{},
+    );
 
-Future<Map<String, dynamic>> _handleAuthResponse(
-http.Response response,
-) async {
-final decoded = jsonDecode(response.body);
+    final token = data['accessToken']?.toString();
+    final user = Map<String, dynamic>.from(
+      data['user'] as Map? ?? <String, dynamic>{},
+    );
 
-```
-if (response.statusCode < 200 || response.statusCode >= 300) {
-  if (decoded is Map && decoded['error'] != null) {
-    throw Exception(decoded['error'].toString());
+    if (token == null || token.isEmpty) {
+      throw Exception('No access token received');
+    }
+
+    await _saveSession(
+      token: token,
+      userId: user['id']?.toString(),
+      email: user['email']?.toString(),
+    );
+
+    return data;
   }
 
-  throw Exception('Authentication failed');
-}
+  Future<Map<String, dynamic>?> getProfile() async {
+    final token = await getAccessToken();
 
-final data = Map<String, dynamic>.from(
-  decoded['data'] as Map? ?? <String, dynamic>{},
-);
+    if (token == null || token.isEmpty) {
+      return null;
+    }
 
-final token = data['accessToken']?.toString();
+    final response = await _client.get(
+      Uri.parse('$baseUrl/me/profile'),
+      headers: _authorizedHeaders(token),
+    );
 
-final user = Map<String, dynamic>.from(
-  data['user'] as Map? ?? <String, dynamic>{},
-);
+    if (response.statusCode == 401) {
+      await logout();
+      return null;
+    }
 
-if (token == null || token.isEmpty) {
-  throw Exception('No access token received');
-}
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Failed to load profile');
+    }
 
-await _saveSession(
-  token: token,
-  userId: user['id']?.toString(),
-  email: user['email']?.toString(),
-);
+    final decoded = jsonDecode(response.body);
+    final data = decoded['data'];
 
-return data;
-```
+    if (data == null) {
+      return null;
+    }
 
-}
-
-Future<Map<String, dynamic>?> getProfile() async {
-final token = await getAccessToken();
-
-```
-if (token == null || token.isEmpty) {
-  return null;
-}
-
-final response = await _client.get(
-  Uri.parse('$baseUrl/me/profile'),
-  headers: _authorizedHeaders(token),
-);
-
-if (response.statusCode == 401) {
-  await logout();
-  return null;
-}
-
-if (response.statusCode < 200 || response.statusCode >= 300) {
-  throw Exception('Failed to load profile');
-}
-
-final decoded = jsonDecode(response.body);
-final data = decoded['data'];
-
-if (data == null) {
-  return null;
-}
-
-return Map<String, dynamic>.from(data as Map);
-```
-
-}
-
-Future<Map<String, dynamic>> saveProfile({
-required String name,
-String? schoolName,
-String? stage,
-String? subject,
-}) async {
-final token = await getAccessToken();
-
-```
-if (token == null || token.isEmpty) {
-  throw Exception('Authentication required');
-}
-
-final response = await _client.put(
-  Uri.parse('$baseUrl/me/profile'),
-  headers: _authorizedHeaders(token),
-  body: jsonEncode({
-    'name': name.trim(),
-    'schoolName': schoolName?.trim(),
-    'stage': stage?.trim(),
-    'subject': subject?.trim(),
-  }),
-);
-
-final decoded = jsonDecode(response.body);
-
-if (response.statusCode < 200 || response.statusCode >= 300) {
-  if (decoded is Map && decoded['error'] != null) {
-    throw Exception(decoded['error'].toString());
+    return Map<String, dynamic>.from(data as Map);
   }
 
-  throw Exception('Failed to save profile');
-}
+  Future<Map<String, dynamic>> saveProfile({
+    required String name,
+    String? schoolName,
+    String? stage,
+    String? subject,
+  }) async {
+    final token = await getAccessToken();
 
-return Map<String, dynamic>.from(
-  decoded['data'] as Map,
-);
-```
+    if (token == null || token.isEmpty) {
+      throw Exception('Authentication required');
+    }
 
-}
+    final response = await _client.put(
+      Uri.parse('$baseUrl/me/profile'),
+      headers: _authorizedHeaders(token),
+      body: jsonEncode({
+        'name': name.trim(),
+        'schoolName': schoolName?.trim(),
+        'stage': stage?.trim(),
+        'subject': subject?.trim(),
+      }),
+    );
 
-Future<void> _saveSession({
-required String token,
-String? userId,
-String? email,
-}) async {
-final prefs = await SharedPreferences.getInstance();
+    final decoded = jsonDecode(response.body);
 
-```
-await prefs.setString(_tokenKey, token);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      if (decoded is Map && decoded['error'] != null) {
+        throw Exception(decoded['error'].toString());
+      }
+      throw Exception('Failed to save profile');
+    }
 
-if (userId != null && userId.isNotEmpty) {
-  await prefs.setString(_userIdKey, userId);
-}
+    return Map<String, dynamic>.from(
+      decoded['data'] as Map,
+    );
+  }
 
-if (email != null && email.isNotEmpty) {
-  await prefs.setString(_emailKey, email);
-}
-```
+  Future<void> _saveSession({
+    required String token,
+    String? userId,
+    String? email,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
 
-}
+    await prefs.setString(_tokenKey, token);
 
-Future<String?> getAccessToken() async {
-final prefs = await SharedPreferences.getInstance();
-return prefs.getString(_tokenKey);
-}
+    if (userId != null && userId.isNotEmpty) {
+      await prefs.setString(_userIdKey, userId);
+    }
 
-Future<bool> isAuthenticated() async {
-final token = await getAccessToken();
-return token != null && token.isNotEmpty;
-}
+    if (email != null && email.isNotEmpty) {
+      await prefs.setString(_emailKey, email);
+    }
+  }
 
-Future<void> logout() async {
-final prefs = await SharedPreferences.getInstance();
+  Future<String?> getAccessToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_tokenKey);
+  }
 
-```
-await prefs.remove(_tokenKey);
-await prefs.remove(_userIdKey);
-await prefs.remove(_emailKey);
-```
+  Future<String?> getCurrentEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_emailKey);
+  }
 
-}
+  Future<bool> isAuthenticated() async {
+    final token = await getAccessToken();
+    return token != null && token.isNotEmpty;
+  }
 
-Future<List<Evidence>> getEvidence({
-String? status,
-}) async {
-final token = await getAccessToken();
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
 
-```
-final uri = Uri.parse('$baseUrl/evidence').replace(
-  queryParameters:
-      status == null ? null : {'status': status},
-);
+    await prefs.remove(_tokenKey);
+    await prefs.remove(_userIdKey);
+    await prefs.remove(_emailKey);
+  }
 
-final response = await _client.get(
-  uri,
-  headers: _authorizedHeaders(token),
-);
+  Future<List<Evidence>> getEvidence({
+    String? status,
+  }) async {
+    final token = await getAccessToken();
 
-if (response.statusCode < 200 || response.statusCode >= 300) {
-  throw Exception('Failed to load evidence');
-}
+    final uri = Uri.parse('$baseUrl/evidence').replace(
+      queryParameters:
+          status == null ? null : {'status': status},
+    );
 
-final data = jsonDecode(response.body);
+    final response = await _client.get(
+      uri,
+      headers: _authorizedHeaders(token),
+    );
 
-final items = data is List
-    ? data
-    : (data['items'] as List? ?? []);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Failed to load evidence');
+    }
 
-return items
-    .map(
-      (e) => Evidence.fromJson(
-        Map<String, dynamic>.from(e),
-      ),
-    )
-    .toList();
-```
+    final data = jsonDecode(response.body);
+    final items = data is List
+        ? data
+        : (data['items'] as List? ?? []);
 
-}
+    return items
+        .map(
+          (e) => Evidence.fromJson(
+            Map<String, dynamic>.from(e),
+          ),
+        )
+        .toList();
+  }
 
-Future<Map<String, dynamic>> getCoverage() async {
-final token = await getAccessToken();
+  Future<Map<String, dynamic>> getCoverage() async {
+    final token = await getAccessToken();
 
-```
-final response = await _client.get(
-  Uri.parse('$baseUrl/me/coverage'),
-  headers: _authorizedHeaders(token),
-);
+    final response = await _client.get(
+      Uri.parse('$baseUrl/me/coverage'),
+      headers: _authorizedHeaders(token),
+    );
 
-if (response.statusCode < 200 || response.statusCode >= 300) {
-  throw Exception('Failed to load coverage');
-}
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Failed to load coverage');
+    }
 
-return Map<String, dynamic>.from(
-  jsonDecode(response.body),
-);
-```
+    return Map<String, dynamic>.from(
+      jsonDecode(response.body),
+    );
+  }
 
-}
+  Map<String, String> _authorizedHeaders(String? token) {
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+    };
 
-Map<String, String> _authorizedHeaders(String? token) {
-final headers = <String, String>{
-'Content-Type': 'application/json',
-};
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
 
-```
-if (token != null && token.isNotEmpty) {
-  headers['Authorization'] = 'Bearer $token';
-}
+    return headers;
+  }
 
-return headers;
-```
-
-}
-
-void dispose() {
-_client.close();
-}
+  void dispose() {
+    _client.close();
+  }
 }

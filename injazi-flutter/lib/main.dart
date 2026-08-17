@@ -5,15 +5,13 @@ import 'package:go_router/go_router.dart';
 import 'core/theme.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
-import 'screens/forgot_password_screen.dart';
-import 'screens/reset_password_screen.dart';
 import 'screens/landing_screen.dart';
 import 'screens/profile_setup_screen.dart';
 import 'services/api_service.dart';
 
 class AppSession extends ChangeNotifier {
   final ApiService api = ApiService(
-    baseUrl: 'https://injazi-backend-svxy.onrender.com',
+    baseUrl: 'http://localhost:4000',
   );
 
   bool ready = false;
@@ -269,5 +267,3 @@ class InjaziApp extends StatelessWidget {
     );
   }
 }
-
-
