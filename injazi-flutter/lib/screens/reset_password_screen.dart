@@ -113,15 +113,12 @@ body: Center(
 child: SingleChildScrollView(
 padding: const EdgeInsets.all(24),
 child: ConstrainedBox(
-constraints: const BoxConstraints(
-maxWidth: 460,
-),
+constraints: const BoxConstraints(maxWidth: 460),
 child: Card(
 child: Padding(
 padding: const EdgeInsets.all(28),
 child: Column(
-crossAxisAlignment:
-CrossAxisAlignment.stretch,
+crossAxisAlignment: CrossAxisAlignment.stretch,
 children: [
 const Icon(
 Icons.lock_outline,
@@ -192,9 +189,7 @@ FilledButton(
 onPressed: loading ? null : submit,
 child: Padding(
 padding:
-const EdgeInsets.symmetric(
-vertical: 14,
-),
+const EdgeInsets.symmetric(vertical: 14),
 child: loading
 ? const SizedBox(
 width: 22,
