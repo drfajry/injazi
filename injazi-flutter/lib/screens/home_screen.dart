@@ -1,5 +1,4 @@
-﻿import 'package:go_router/go_router.dart';
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../models/evidence.dart';
 import '../widgets/coverage_card.dart';
