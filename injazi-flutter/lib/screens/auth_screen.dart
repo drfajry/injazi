@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../services/api_service.dart';
 
@@ -212,7 +213,15 @@ class _AuthScreenState extends State<AuthScreen> {
                         border: const OutlineInputBorder(),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 4),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: loading ? null : () => context.go('/forgot-password'),
+                        child: const Text('نسيت كلمة المرور؟'),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     FilledButton(
                       onPressed: loading ? null : submit,
                       child: Padding(
@@ -268,4 +277,7 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 }
+
+
+
 
