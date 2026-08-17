@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'core/theme.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/forgot_password_screen.dart';
 import 'screens/landing_screen.dart';
 import 'screens/profile_setup_screen.dart';
 import 'services/api_service.dart';
@@ -198,6 +199,10 @@ void main() {
         },
       ),
       GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
         path: '/profile/setup',
         builder: (context, state) {
           return ProfileSetupScreen(
@@ -267,3 +272,5 @@ class InjaziApp extends StatelessWidget {
     );
   }
 }
+
+
