@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../models/evidence.dart';
 import '../widgets/coverage_card.dart';
@@ -44,17 +44,17 @@ destinations: const [
 NavigationDestination(
 icon: Icon(Icons.home_outlined),
 selectedIcon: Icon(Icons.home),
-label: 'الرئيسية',
+label: '\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629',
 ),
 NavigationDestination(
 icon: Icon(Icons.sync_alt_outlined),
 selectedIcon: Icon(Icons.sync_alt),
-label: 'المصادر',
+label: '\u0627\u0644\u0645\u0635\u0627\u062f\u0631',
 ),
 NavigationDestination(
 icon: Icon(Icons.folder_outlined),
 selectedIcon: Icon(Icons.folder),
-label: 'ملفي',
+label: '\u0645\u0644\u0641\u064a',
 ),
 ],
 ),
@@ -62,7 +62,9 @@ floatingActionButton: currentIndex == 0
 ? FloatingActionButton.extended(
 onPressed: () {},
 icon: const Icon(Icons.add),
-label: const Text('إضافة دليل'),
+label: const Text(
+'\u0625\u0636\u0627\u0641\u0629 \u062f\u0644\u064a\u0644',
+),
 )
 : null,
 ),
@@ -76,24 +78,24 @@ const DashboardTab({super.key});
 static const List<Evidence> sampleEvidence = [
 Evidence(
 id: '1',
-title: 'نشاط التعلم التعاوني',
-type: 'نشاط',
-source: 'مدرستي',
+title: '\u0646\u0634\u0627\u0637 \u0627\u0644\u062a\u0639\u0644\u0645 \u0627\u0644\u062a\u0639\u0627\u0648\u0646\u064a',
+type: '\u0646\u0634\u0627\u0637',
+source: '\u0645\u062f\u0631\u0633\u062a\u064a',
 confidence: 0.96,
 status: 'APPROVED',
 ),
 Evidence(
 id: '2',
-title: 'اختبار قصير في الأمن السيبراني',
-type: 'اختبار',
-source: 'مدرستي',
+title: '\u0627\u062e\u062a\u0628\u0627\u0631 \u0642\u0635\u064a\u0631 \u0641\u064a \u0627\u0644\u0623\u0645\u0646 \u0627\u0644\u0633\u064a\u0628\u0631\u0627\u0646\u064a',
+type: '\u0627\u062e\u062a\u0628\u0627\u0631',
+source: '\u0645\u062f\u0631\u0633\u062a\u064a',
 confidence: 0.92,
 status: 'APPROVED',
 ),
 Evidence(
 id: '3',
-title: 'شهادة دورة الذكاء الاصطناعي',
-type: 'شهادة',
+title: '\u0634\u0647\u0627\u062f\u0629 \u062f\u0648\u0631\u0629 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a',
+type: '\u0634\u0647\u0627\u062f\u0629',
 source: 'Google Drive',
 confidence: 0.99,
 status: 'SUGGESTED',
@@ -114,7 +116,7 @@ child: Column(
 crossAxisAlignment: CrossAxisAlignment.start,
 children: [
 Text(
-'أهلًا بك 👋',
+'\u0623\u0647\u0644\u0627\u064b \u0628\u0643',
 style: TextStyle(
 color: Color(0xFF64748B),
 fontSize: 15,
@@ -122,7 +124,7 @@ fontSize: 15,
 ),
 SizedBox(height: 4),
 Text(
-'د. فيصل',
+'\u062f. \u0641\u064a\u0635\u0644',
 style: TextStyle(
 fontSize: 28,
 fontWeight: FontWeight.w800,
@@ -154,8 +156,8 @@ missing: 6,
 ),
 const SizedBox(height: 22),
 const SectionTitle(
-title: 'لا تحتاج إلى فعل شيء الآن',
-action: 'عرض الملف',
+title: '\u0644\u0627 \u062a\u062d\u062a\u0627\u062c \u0625\u0644\u0649 \u0641\u0639\u0644 \u0634\u064a\u0621 \u0627\u0644\u0622\u0646',
+action: '\u0639\u0631\u0636 \u0627\u0644\u0645\u0644\u0641',
 ),
 const SizedBox(height: 10),
 Card(
@@ -178,7 +180,7 @@ color: Color(0xFF15803D),
 const SizedBox(width: 14),
 const Expanded(
 child: Text(
-'تمت إضافة 9 أدلة جديدة من مصادرك خلال هذا الأسبوع.',
+'\u062a\u0645\u062a \u0625\u0636\u0627\u0641\u0629 9 \u0623\u062f\u0644\u0629 \u062c\u062f\u064a\u062f\u0629 \u0645\u0646 \u0645\u0635\u0627\u062f\u0631\u0643 \u062e\u0644\u0627\u0644 \u0647\u0630\u0627 \u0627\u0644\u0623\u0633\u0628\u0648\u0639.',
 style: TextStyle(
 height: 1.5,
 fontWeight: FontWeight.w600,
@@ -191,14 +193,16 @@ fontWeight: FontWeight.w600,
 ),
 const SizedBox(height: 22),
 const SectionTitle(
-title: 'وجدنا أدلة جديدة',
-action: 'عرض الكل',
+title: '\u0648\u062c\u062f\u0646\u0627 \u0623\u062f\u0644\u0629 \u062c\u062f\u064a\u062f\u0629',
+action: '\u0639\u0631\u0636 \u0627\u0644\u0643\u0644',
 ),
 const SizedBox(height: 10),
 ...sampleEvidence.map(
 (evidence) => Padding(
 padding: const EdgeInsets.only(bottom: 8),
-child: EvidenceTile(evidence: evidence),
+child: EvidenceTile(
+evidence: evidence,
+),
 ),
 ),
 ],
