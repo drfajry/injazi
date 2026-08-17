@@ -84,6 +84,25 @@ class ApiService {
     return data;
   }
 
+
+  Future<void> forgotPassword({
+    required String email,
+  }) async {
+    final response = await _client.post(
+      Uri.parse('/auth/forgot-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email.trim().toLowerCase()}),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final decoded = jsonDecode(response.body);
+      throw Exception(
+        decoded is Map && decoded['error'] != null
+            ? decoded['error'].toString()
+            : 'Password reset request failed',
+      );
+    }
+  }
   Future<Map<String, dynamic>?> getProfile() async {
     final token = await getAccessToken();
 
@@ -259,3 +278,4 @@ class ApiService {
     _client.close();
   }
 }
+
