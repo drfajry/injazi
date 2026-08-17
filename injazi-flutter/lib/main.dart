@@ -11,7 +11,7 @@ import 'services/api_service.dart';
 
 class AppSession extends ChangeNotifier {
   final ApiService api = ApiService(
-    baseUrl: 'http://localhost:4000',
+    baseUrl: 'https://injazi-backend-svxy.onrender.com',
   );
 
   bool ready = false;
@@ -267,3 +267,4 @@ class InjaziApp extends StatelessWidget {
     );
   }
 }
+

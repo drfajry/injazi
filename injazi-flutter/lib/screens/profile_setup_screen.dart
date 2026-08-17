@@ -35,7 +35,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     super.initState();
 
     api = ApiService(
-      baseUrl: 'http://localhost:4000',
+      baseUrl: 'https://injazi-backend-svxy.onrender.com',
     );
   }
 
@@ -236,4 +236,5 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
   }
 }
+
 
