@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:go_router/go_router.dart';
 
 import 'core/theme.dart';
 import 'screens/auth_screen.dart';
@@ -8,102 +9,74 @@ import 'screens/landing_screen.dart';
 import 'screens/profile_setup_screen.dart';
 import 'services/api_service.dart';
 
-void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  runApp(const InjaziApp());
-}
+class AppSession extends ChangeNotifier {
+  final ApiService api = ApiService(
+    baseUrl: 'http://localhost:4000',
+  );
 
-class InjaziApp extends StatefulWidget {
-  const InjaziApp({super.key});
-
-  @override
-  State<InjaziApp> createState() => _InjaziAppState();
-}
-
-class _InjaziAppState extends State<InjaziApp> {
-  late final ApiService api;
-
-  bool loading = true;
+  bool ready = false;
   bool authenticated = false;
   bool hasProfile = false;
-  bool showAuth = false;
 
-  @override
-  void initState() {
-    super.initState();
-
-    api = ApiService(
-      baseUrl: 'http://localhost:4000',
-    );
-
-    _bootstrap();
+  AppSession() {
+    initialize();
   }
 
-  Future<void> _bootstrap() async {
+  Future<void> initialize() async {
     try {
-      final loggedIn = await api.isAuthenticated();
+      authenticated = await api.isAuthenticated();
 
-      if (!loggedIn) {
-        if (!mounted) return;
+      if (authenticated) {
+        final profile = await api.getProfile();
 
-        setState(() {
-          authenticated = false;
+        if (profile == null) {
+          authenticated = await api.isAuthenticated();
           hasProfile = false;
-          showAuth = false;
-          loading = false;
-        });
-
-        return;
+        } else {
+          hasProfile = true;
+        }
       }
-
-      final profile = await api.getProfile();
-
-      if (!mounted) return;
-
-      setState(() {
-        authenticated = true;
-        hasProfile = profile != null;
-        showAuth = false;
-        loading = false;
-      });
     } catch (_) {
       await api.logout();
-
-      if (!mounted) return;
-
-      setState(() {
-        authenticated = false;
-        hasProfile = false;
-        showAuth = false;
-        loading = false;
-      });
+      authenticated = false;
+      hasProfile = false;
     }
+
+    ready = true;
+    notifyListeners();
   }
 
-  void _showLogin() {
-    setState(() {
-      showAuth = true;
-    });
-  }
+  Future<void> refreshAfterLogin() async {
+    authenticated = await api.isAuthenticated();
 
-  Future<void> _onAuthenticated() async {
+    if (!authenticated) {
+      hasProfile = false;
+      notifyListeners();
+      return;
+    }
+
     final profile = await api.getProfile();
 
-    if (!mounted) return;
+    authenticated = await api.isAuthenticated();
+    hasProfile = profile != null;
 
-    setState(() {
-      authenticated = true;
-      hasProfile = profile != null;
-      showAuth = false;
-    });
+    notifyListeners();
   }
 
-  void _onProfileCompleted() {
-    setState(() {
-      authenticated = true;
-      hasProfile = true;
-      showAuth = false;
-    });
+  Future<void> refreshProfile() async {
+    final profile = await api.getProfile();
+
+    authenticated = await api.isAuthenticated();
+    hasProfile = profile != null;
+
+    notifyListeners();
+  }
+
+  Future<void> logout() async {
+    await api.logout();
+    authenticated = false;
+    hasProfile = false;
+    notifyListeners();
   }
 
   @override
@@ -111,38 +84,175 @@ class _InjaziAppState extends State<InjaziApp> {
     api.dispose();
     super.dispose();
   }
+}
 
-  Widget _home() {
-    if (loading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
 
-    if (!authenticated) {
-      return showAuth
-          ? AuthScreen(
-              onAuthenticated: _onAuthenticated,
-            )
-          : LandingScreen(
-              onStart: _showLogin,
-            );
-    }
+  final session = AppSession();
 
-    if (!hasProfile) {
-      return ProfileSetupScreen(
-        onCompleted: _onProfileCompleted,
-      );
-    }
+  final router = GoRouter(
+    initialLocation: '/',
+    refreshListenable: session,
+    redirect: (context, state) {
+      final location = state.uri.path;
 
-    return const HomeScreen();
-  }
+      if (!session.ready) {
+        return location == '/loading' ? null : '/loading';
+      }
+
+      final publicRoutes = <String>{
+        '/',
+        '/login',
+        '/register',
+      };
+
+      if (!session.authenticated) {
+        if (publicRoutes.contains(location)) {
+          return null;
+        }
+
+        return '/';
+      }
+
+      if (!session.hasProfile) {
+        if (location == '/profile/setup') {
+          return null;
+        }
+
+        if (location == '/login' ||
+            location == '/register') {
+          return '/profile/setup';
+        }
+
+        if (location == '/') {
+          return null;
+        }
+
+        return '/profile/setup';
+      }
+
+      if (location == '/login' ||
+          location == '/register' ||
+          location == '/profile/setup') {
+        return '/dashboard';
+      }
+
+      return null;
+    },
+    routes: [
+      GoRoute(
+        path: '/loading',
+        builder: (context, state) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/',
+        builder: (context, state) {
+          return LandingScreen(
+            onStart: () => context.go('/login'),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/login',
+        builder: (context, state) {
+          return AuthScreen(
+            initialIsLogin: true,
+            onAuthenticated: () async {
+              await session.refreshAfterLogin();
+
+              if (!context.mounted) return;
+
+              if (session.hasProfile) {
+                context.go('/dashboard');
+              } else {
+                context.go('/profile/setup');
+              }
+            },
+          );
+        },
+      ),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) {
+          return AuthScreen(
+            initialIsLogin: false,
+            onAuthenticated: () async {
+              await session.refreshAfterLogin();
+
+              if (!context.mounted) return;
+
+              if (session.hasProfile) {
+                context.go('/dashboard');
+              } else {
+                context.go('/profile/setup');
+              }
+            },
+          );
+        },
+      ),
+      GoRoute(
+        path: '/profile/setup',
+        builder: (context, state) {
+          return ProfileSetupScreen(
+            onCompleted: () async {
+              await session.refreshProfile();
+
+              if (!context.mounted) return;
+
+              context.go('/dashboard');
+            },
+          );
+        },
+      ),
+      GoRoute(
+        path: '/dashboard',
+        builder: (context, state) {
+          return const HomeScreen();
+        },
+      ),
+      GoRoute(
+        path: '/sources',
+        builder: (context, state) {
+          return const HomeScreen();
+        },
+      ),
+      GoRoute(
+        path: '/portfolio',
+        builder: (context, state) {
+          return const HomeScreen();
+        },
+      ),
+    ],
+  );
+
+  runApp(
+    InjaziApp(
+      router: router,
+      session: session,
+    ),
+  );
+}
+
+class InjaziApp extends StatelessWidget {
+  final GoRouter router;
+  final AppSession session;
+
+  const InjaziApp({
+    super.key,
+    required this.router,
+    required this.session,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'Injazi',
       theme: InjaziTheme.light(),
@@ -153,7 +263,7 @@ class _InjaziAppState extends State<InjaziApp> {
       ],
       localizationsDelegates:
           GlobalMaterialLocalizations.delegates,
-      home: _home(),
+      routerConfig: router,
     );
   }
 }

@@ -4,10 +4,12 @@ import '../services/api_service.dart';
 
 class AuthScreen extends StatefulWidget {
   final VoidCallback onAuthenticated;
+  final bool initialIsLogin;
 
   const AuthScreen({
     super.key,
     required this.onAuthenticated,
+    this.initialIsLogin = true,
   });
 
   @override
@@ -27,6 +29,7 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   void initState() {
     super.initState();
+    isLogin = widget.initialIsLogin;
 
     api = ApiService(
       baseUrl: 'http://localhost:4000',
@@ -265,3 +268,4 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 }
+
