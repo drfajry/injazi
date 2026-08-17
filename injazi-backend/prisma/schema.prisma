@@ -1,4 +1,4 @@
-generator client {
+﻿generator client {
 provider = "prisma-client-js"
 }
 
@@ -289,4 +289,16 @@ metadata   Json?
 createdAt  DateTime @default(now())
 user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 @@index([userId, createdAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }

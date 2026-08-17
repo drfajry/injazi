@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'core/theme.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/forgot_password_screen.dart';
+import 'screens/reset_password_screen.dart';
 import 'screens/landing_screen.dart';
 import 'screens/profile_setup_screen.dart';
 import 'services/api_service.dart';
@@ -267,4 +269,5 @@ class InjaziApp extends StatelessWidget {
     );
   }
 }
+
 
