@@ -33,7 +33,7 @@ class _AuthScreenState extends State<AuthScreen> {
     isLogin = widget.initialIsLogin;
 
     api = ApiService(
-      baseUrl: 'http://localhost:4000',
+      baseUrl: 'https://injazi-backend-svxy.onrender.com',
     );
   }
 
@@ -277,6 +277,7 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 }
+
 
 
 
