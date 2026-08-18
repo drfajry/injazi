@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../models/evidence.dart';
 
 class EvidenceTile extends StatelessWidget {
@@ -8,9 +8,9 @@ class EvidenceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final icon = switch (evidence.type) {
-      'ط´ظ‡ط§ط¯ط©' => Icons.workspace_premium_outlined,
-      'ط§ط®طھط¨ط§ط±' => Icons.quiz_outlined,
-      'ظ†ط´ط§ط·' => Icons.extension_outlined,
+      '?�?�?�?�?�' => Icons.workspace_premium_outlined,
+      '?�?�???�?�?�' => Icons.quiz_outlined,
+      '?�?�?�?�' => Icons.extension_outlined,
       _ => Icons.description_outlined,
     };
     return Card(
