@@ -106,6 +106,8 @@ void main() {
         '/',
         '/login',
         '/register',
+        '/forgot-password',
+        '/reset-password',
       };
 
       if (!session.authenticated) {
@@ -272,6 +274,7 @@ class InjaziApp extends StatelessWidget {
     );
   }
 }
+
 
 
 
