@@ -98,11 +98,7 @@ void main() {
     redirect: (context, state) {
       final location = state.uri.path;
 
-      if (!session.ready) {
-        return location == '/loading' ? null : '/loading';
-      }
-
-      final publicRoutes = <String>{
+      const publicRoutes = <String>{
         '/',
         '/login',
         '/register',
@@ -110,40 +106,40 @@ void main() {
         '/reset-password',
       };
 
-      if (!session.authenticated) {
-        if (publicRoutes.contains(location)) {
-          return null;
-        }
+      const protectedRoutes = <String>{
+        '/profile/setup',
+        '/dashboard',
+        '/sources',
+        '/portfolio',
+      };
 
+      if (publicRoutes.contains(location)) {
+        return null;
+      }
+
+      if (!session.ready) {
+        return null;
+      }
+
+      if (!session.authenticated) {
         return '/';
       }
 
-      if (!session.hasProfile) {
-        if (location == '/profile/setup') {
-          return null;
-        }
+      if (location == '/profile/setup') {
+        return session.hasProfile ? '/dashboard' : null;
+      }
 
-        if (location == '/login' ||
-            location == '/register') {
+      if (protectedRoutes.contains(location)) {
+        if (!session.hasProfile &&
+            location != '/profile/setup') {
           return '/profile/setup';
         }
 
-        if (location == '/') {
-          return null;
-        }
-
-        return '/profile/setup';
+        return null;
       }
 
-      if (location == '/login' ||
-          location == '/register' ||
-          location == '/profile/setup') {
-        return '/dashboard';
-      }
-
-      return null;
-    },
-    routes: [
+      return '/dashboard';
+    },    routes: [
       GoRoute(
         path: '/loading',
         builder: (context, state) {
@@ -274,6 +270,8 @@ class InjaziApp extends StatelessWidget {
     );
   }
 }
+
+
 
 
 
