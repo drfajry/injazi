@@ -68,16 +68,27 @@ class _AuthScreenState extends State<AuthScreen> {
           email: email,
           password: password,
         );
+
+        if (!mounted) return;
+
+        widget.onAuthenticated();
       } else {
-        await api.register(
+        final result = await api.register(
           email: email,
           password: password,
         );
+
+        if (!mounted) return;
+
+        if (result['requiresEmailVerification'] == true) {
+          context.go(
+            '/verify-email',
+            extra: email,
+          );
+        } else {
+          widget.onAuthenticated();
+        }
       }
-
-      if (!mounted) return;
-
-      widget.onAuthenticated();
     } catch (error) {
       if (!mounted) return;
 
@@ -277,6 +288,7 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 }
+
 
 
 

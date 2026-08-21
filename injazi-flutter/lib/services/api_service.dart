@@ -39,7 +39,7 @@ class ApiService {
     required String password,
   }) async {
     final response = await _client.post(
-      Uri.parse('$baseUrl/auth/register'),
+      Uri.parse('/auth/register'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'email': email.trim().toLowerCase(),
@@ -47,7 +47,19 @@ class ApiService {
       }),
     );
 
-    return _handleAuthResponse(response);
+    final decoded = jsonDecode(response.body);
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      if (decoded is Map && decoded['error'] != null) {
+        throw Exception(decoded['error'].toString());
+      }
+
+      throw Exception('Registration failed');
+    }
+
+    return Map<String, dynamic>.from(
+      decoded['data'] as Map? ?? <String, dynamic>{},
+    );
   }
 
   Future<Map<String, dynamic>> _handleAuthResponse(
@@ -315,6 +327,7 @@ class ApiService {
     _client.close();
   }
 }
+
 
 
 
