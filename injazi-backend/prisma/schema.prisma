@@ -1,4 +1,4 @@
-﻿generator client {
+generator client {
 provider = "prisma-client-js"
 }
 
@@ -68,7 +68,9 @@ portfolioSections PortfolioSection[]
 portfolioVersions PortfolioVersion[]
 subscriptions     Subscription[]
 aiJobs            AiJob[]
-auditLogs         AuditLog[]
+auditLogs              AuditLog[]
+  emailVerifiedAt        DateTime?
+  emailVerificationCodes EmailVerificationCode[]
 }
 
 model School {
@@ -302,3 +304,18 @@ model PasswordResetToken {
   @@index([userId])
   @@index([expiresAt])
 }
+model EmailVerificationCode {
+  id        String   @id @default(cuid())
+  userId    String
+  codeHash  String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+}
+
