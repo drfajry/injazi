@@ -211,7 +211,10 @@ void main() {
             );
           }
 
-          return VerifyEmailScreen(email: email);
+          return VerifyEmailScreen(
+            email: email,
+            onVerified: session.refreshAfterLogin,
+          );
         },
       ),      GoRoute(
         path: '/forgot-password',
@@ -287,6 +290,7 @@ class InjaziApp extends StatelessWidget {
     );
   }
 }
+
 
 
 

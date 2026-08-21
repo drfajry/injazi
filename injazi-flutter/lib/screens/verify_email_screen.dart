@@ -1,14 +1,16 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../services/api_service.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
   final String email;
+  final Future<void> Function() onVerified;
 
   const VerifyEmailScreen({
     super.key,
     required this.email,
+    required this.onVerified,
   });
 
   @override
@@ -38,7 +40,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     final code = codeController.text.trim();
 
     if (!RegExp(r'^\\d{6}$').hasMatch(code)) {
-      _message('أدخل رمز التحقق المكون من 6 أرقام');
+      _message('ط£ط¯ط®ظ„ ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ط§ظ„ظ…ظƒظˆظ† ظ…ظ† 6 ط£ط±ظ‚ط§ظ…');
       return;
     }
 
@@ -49,6 +51,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         email: widget.email,
         code: code,
       );
+
+      await widget.onVerified();
 
       if (!mounted) return;
       context.go('/profile/setup');
@@ -66,7 +70,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     try {
       await api.resendVerification(email: widget.email);
       if (!mounted) return;
-      _message('تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني');
+      _message('طھظ… ط¥ط±ط³ط§ظ„ ط±ظ…ط² طھط­ظ‚ظ‚ ط¬ط¯ظٹط¯ ط¥ظ„ظ‰ ط¨ط±ظٹط¯ظƒ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ');
     } catch (e) {
       if (!mounted) return;
       _message(e.toString().replaceFirst('Exception: ', ''));
@@ -105,7 +109,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                       ),
                       const SizedBox(height: 18),
                       const Text(
-                        'تحقق من بريدك الإلكتروني',
+                        'طھط­ظ‚ظ‚ ظ…ظ† ط¨ط±ظٹط¯ظƒ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 26,
@@ -114,7 +118,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'أرسلنا رمز تحقق إلى ',
+                        'ط£ط±ط³ظ„ظ†ط§ ط±ظ…ط² طھط­ظ‚ظ‚ ط¥ظ„ظ‰ ',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Color(0xFF64748B),
@@ -128,7 +132,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                         textAlign: TextAlign.center,
                         maxLength: 6,
                         decoration: const InputDecoration(
-                          labelText: 'رمز التحقق',
+                          labelText: 'ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚',
                           border: OutlineInputBorder(),
                           counterText: '',
                         ),
@@ -144,7 +148,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                                   height: 22,
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
-                              : const Text('تحقق من البريد'),
+                              : const Text('طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط¨ط±ظٹط¯'),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -156,12 +160,12 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                                 height: 20,
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Text('إعادة إرسال الرمز'),
+                            : const Text('ط¥ط¹ط§ط¯ط© ط¥ط±ط³ط§ظ„ ط§ظ„ط±ظ…ط²'),
                       ),
                       const SizedBox(height: 8),
                       TextButton(
                         onPressed: () => context.go('/login'),
-                        child: const Text('العودة لتسجيل الدخول'),
+                        child: const Text('ط§ظ„ط¹ظˆط¯ط© ظ„طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„'),
                       ),
                     ],
                   ),
@@ -174,3 +178,4 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     );
   }
 }
+
