@@ -6,6 +6,7 @@ import 'core/theme.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/forgot_password_screen.dart';
+import 'screens/verify_email_screen.dart';
 import 'screens/landing_screen.dart';
 import 'screens/profile_setup_screen.dart';
 import 'services/api_service.dart';
@@ -103,6 +104,7 @@ void main() {
         '/login',
         '/register',
         '/forgot-password',
+        '/verify-email',
         '/reset-password',
       };
 
@@ -197,6 +199,21 @@ void main() {
         },
       ),
       GoRoute(
+        path: '/verify-email',
+        builder: (context, state) {
+          final email = state.extra?.toString() ?? '';
+
+          if (email.isEmpty) {
+            return const Scaffold(
+              body: Center(
+                child: Text('Invalid verification request'),
+              ),
+            );
+          }
+
+          return VerifyEmailScreen(email: email);
+        },
+      ),      GoRoute(
         path: '/forgot-password',
         builder: (context, state) => const ForgotPasswordScreen(),
       ),
@@ -270,6 +287,7 @@ class InjaziApp extends StatelessWidget {
     );
   }
 }
+
 
 
 

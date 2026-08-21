@@ -103,6 +103,43 @@ class ApiService {
       );
     }
   }
+  Future<Map<String, dynamic>> verifyEmail({
+    required String email,
+    required String code,
+  }) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/auth/verify-email'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email.trim().toLowerCase(),
+        'code': code.trim(),
+      }),
+    );
+
+    return _handleAuthResponse(response);
+  }
+
+  Future<void> resendVerification({
+    required String email,
+  }) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/auth/resend-verification'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email.trim().toLowerCase(),
+      }),
+    );
+
+    final decoded = jsonDecode(response.body);
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      if (decoded is Map && decoded['error'] != null) {
+        throw Exception(decoded['error'].toString());
+      }
+
+      throw Exception('Verification code request failed');
+    }
+  }
   Future<Map<String, dynamic>?> getProfile() async {
     final token = await getAccessToken();
 
@@ -278,6 +315,7 @@ class ApiService {
     _client.close();
   }
 }
+
 
 
 
