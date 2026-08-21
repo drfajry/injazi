@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -39,7 +39,7 @@ class ApiService {
     required String password,
   }) async {
     final response = await _client.post(
-      Uri.parse('/auth/register'),
+      Uri.parse('$baseUrl/auth/register'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'email': email.trim().toLowerCase(),
