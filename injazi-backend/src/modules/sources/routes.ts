@@ -4,6 +4,7 @@ import { EvidenceType, SourceStatus, SourceType } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../../db/prisma.js';
 import { requireAuth, getAuthenticatedUserId } from '../auth/middleware.js';
+import { extractText } from './text-extraction.js';
 
 export const sourcesRouter = Router();
 
@@ -54,10 +55,15 @@ sourcesRouter.post('/upload', requireAuth, upload.single('file'), async (req, re
       },
     });
 
+    // Best-effort text extraction — never blocks the upload if it fails or
+    // the file type isn't supported yet (e.g. images require OCR, not built yet).
+    const extractedText = await extractText(file.buffer, file.mimetype);
+
     const evidence = await prisma.evidence.create({
       data: {
         userId,
         title,
+        description: extractedText,
         type: guessEvidenceType(file.mimetype),
         confidence: 0.95, // manual, user-provided upload — high confidence
         status: 'APPROVED',
@@ -77,7 +83,13 @@ sourcesRouter.post('/upload', requireAuth, upload.single('file'), async (req, re
       select: { id: true, mimeType: true, size: true, originalName: true, createdAt: true },
     });
 
-    res.status(201).json({ data: { evidence, file: evidenceFile } });
+    res.status(201).json({
+      data: {
+        evidence,
+        file: evidenceFile,
+        textExtracted: extractedText !== null,
+      },
+    });
   } catch (error) {
     next(error);
   }

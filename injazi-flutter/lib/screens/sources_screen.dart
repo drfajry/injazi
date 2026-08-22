@@ -57,7 +57,7 @@ class _SourcesScreenState extends State<SourcesScreen> {
     setState(() => _uploading = true);
 
     try {
-      await widget.api.uploadFile(
+      final result = await widget.api.uploadFile(
         bytes: bytes,
         filename: filename,
         mimeType: mimeType,
@@ -65,8 +65,18 @@ class _SourcesScreenState extends State<SourcesScreen> {
       );
 
       if (!mounted) return;
+
+      final data = result['data'] as Map<String, dynamic>?;
+      final textExtracted = data?['textExtracted'] == true;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم رفع الملف وإضافته كدليل جديد بنجاح.')),
+        SnackBar(
+          content: Text(
+            textExtracted
+                ? 'تم رفع الملف واستخراج محتواه النصي وإضافته كدليل جديد بنجاح.'
+                : 'تم رفع الملف وإضافته كدليل جديد بنجاح.',
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
