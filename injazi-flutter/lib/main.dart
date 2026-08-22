@@ -65,6 +65,11 @@ class AppSession extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> markAuthenticatedAfterEmailVerification() async {
+    authenticated = await api.isAuthenticated();
+    hasProfile = false;
+    notifyListeners();
+  }
   Future<void> refreshProfile() async {
     final profile = await api.getProfile();
 
@@ -213,7 +218,7 @@ void main() {
 
           return VerifyEmailScreen(
             email: email,
-            onVerified: session.refreshAfterLogin,
+            onVerified: session.markAuthenticatedAfterEmailVerification,
           );
         },
       ),      GoRoute(
@@ -290,6 +295,7 @@ class InjaziApp extends StatelessWidget {
     );
   }
 }
+
 
 
 

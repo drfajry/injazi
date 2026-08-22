@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../services/api_service.dart';
@@ -40,7 +40,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     final code = codeController.text.trim();
 
     if (!RegExp(r'^\\d{6}$').hasMatch(code)) {
-      _message('ط£ط¯ط®ظ„ ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ط§ظ„ظ…ظƒظˆظ† ظ…ظ† 6 ط£ط±ظ‚ط§ظ…');
+      _message('\\u0623\\u062f\\u062e\\u0644 \\u0631\\u0645\\u0632 \\u0627\\u0644\\u062a\\u062d\\u0642\\u0642 \\u0627\\u0644\\u0645\\u0643\\u0648\\u0646 \\u0645\\u0646 6 \\u0623\\u0631\\u0642\\u0627\\u0645');
       return;
     }
 
@@ -70,7 +70,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     try {
       await api.resendVerification(email: widget.email);
       if (!mounted) return;
-      _message('طھظ… ط¥ط±ط³ط§ظ„ ط±ظ…ط² طھط­ظ‚ظ‚ ط¬ط¯ظٹط¯ ط¥ظ„ظ‰ ط¨ط±ظٹط¯ظƒ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ');
+      _message('\\u062a\\u0645 \\u0625\\u0631\\u0633\\u0627\\u0644 \\u0631\\u0645\\u0632 \\u062c\\u062f\\u064a\\u062f');
     } catch (e) {
       if (!mounted) return;
       _message(e.toString().replaceFirst('Exception: ', ''));
@@ -109,7 +109,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                       ),
                       const SizedBox(height: 18),
                       const Text(
-                        'طھط­ظ‚ظ‚ ظ…ظ† ط¨ط±ظٹط¯ظƒ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ',
+                        '\\u062a\\u062d\\u0642\\u0642 \\u0645\\u0646 \\u0628\\u0631\\u064a\\u062f\\u0643 \\u0627\\u0644\\u0625\\u0644\\u0643\\u062a\\u0631\\u0648\\u0646\\u064a',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 26,
@@ -118,7 +118,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'ط£ط±ط³ظ„ظ†ط§ ط±ظ…ط² طھط­ظ‚ظ‚ ط¥ظ„ظ‰ ',
+                        '\\u0623\\u0631\\u0633\\u0644\\u0646\\u0627 \\u0631\\u0645\\u0632 \\u062a\\u062d\\u0642\\u0642 \\u0625\\u0644\\u0649 \\u005c',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Color(0xFF64748B),
@@ -132,7 +132,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                         textAlign: TextAlign.center,
                         maxLength: 6,
                         decoration: const InputDecoration(
-                          labelText: 'ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚',
+                          labelText: '\\u0631\\u0645\\u0632 \\u0627\\u0644\\u062a\\u062d\\u0642\\u0642',
                           border: OutlineInputBorder(),
                           counterText: '',
                         ),
@@ -148,7 +148,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                                   height: 22,
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
-                              : const Text('طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط¨ط±ظٹط¯'),
+                              : const Text('\\u062a\\u062d\\u0642\\u0642 \\u0645\\u0646 \\u0627\\u0644\\u0628\\u0631\\u064a\\u062f'),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -160,12 +160,11 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                                 height: 20,
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Text('ط¥ط¹ط§ط¯ط© ط¥ط±ط³ط§ظ„ ط§ظ„ط±ظ…ط²'),
+                            : const Text('\\u0625\\u0639\\u0627\\u062f\\u0629 \\u0625\\u0631\\u0633\\u0627\\u0644 \\u0627\\u0644\\u0631\\u0645\\u0632'),
                       ),
-                      const SizedBox(height: 8),
                       TextButton(
                         onPressed: () => context.go('/login'),
-                        child: const Text('ط§ظ„ط¹ظˆط¯ط© ظ„طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„'),
+                        child: const Text('\\u0627\\u0644\\u0639\\u0648\\u062f\\u0629 \\u0644\\u062a\\u0633\\u062c\\u064a\\u0644 \\u0627\\u0644\\u062f\\u062e\\u0648\\u0644'),
                       ),
                     ],
                   ),
@@ -178,4 +177,3 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     );
   }
 }
-
