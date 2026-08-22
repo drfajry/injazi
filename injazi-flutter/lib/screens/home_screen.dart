@@ -7,7 +7,9 @@ import 'portfolio_screen.dart';
 import 'sources_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-const HomeScreen({super.key});
+final VoidCallback? onLogout;
+
+const HomeScreen({super.key, this.onLogout});
 
 @override
 State<HomeScreen> createState() => _HomeScreenState();
@@ -16,10 +18,10 @@ State<HomeScreen> createState() => _HomeScreenState();
 class _HomeScreenState extends State<HomeScreen> {
 int currentIndex = 0;
 
-static const List<Widget> tabs = [
-DashboardTab(),
-SourcesScreen(),
-PortfolioScreen(),
+late final List<Widget> tabs = [
+DashboardTab(onLogout: widget.onLogout),
+const SourcesScreen(),
+const PortfolioScreen(),
 ];
 
 @override
@@ -73,7 +75,9 @@ label: const Text(
 }
 
 class DashboardTab extends StatelessWidget {
-const DashboardTab({super.key});
+final VoidCallback? onLogout;
+
+const DashboardTab({super.key, this.onLogout});
 
 static const List<Evidence> sampleEvidence = [
 Evidence(
@@ -133,6 +137,14 @@ fontWeight: FontWeight.w800,
 ],
 ),
 ),
+if (onLogout != null)
+IconButton(
+onPressed: () => _confirmLogout(context, onLogout!),
+icon: const Icon(Icons.logout_outlined),
+tooltip: '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0631\u0648\u062c',
+color: const Color(0xFF64748B),
+),
+const SizedBox(width: 4),
 Container(
 width: 48,
 height: 48,
@@ -208,6 +220,33 @@ evidence: evidence,
 ],
 ),
 );
+}
+}
+
+Future<void> _confirmLogout(BuildContext context, VoidCallback onLogout) async {
+final confirmed = await showDialog<bool>(
+context: context,
+builder: (context) => Directionality(
+textDirection: TextDirection.rtl,
+child: AlertDialog(
+title: const Text('\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0631\u0648\u062c'),
+content: const Text('\u0647\u0644 \u062a\u0631\u064a\u062f \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0631\u0648\u062c \u0645\u0646 \u062d\u0633\u0627\u0628\u0643\u061f'),
+actions: [
+TextButton(
+onPressed: () => Navigator.of(context).pop(false),
+child: const Text('\u0625\u0644\u063a\u0627\u0621'),
+),
+FilledButton(
+onPressed: () => Navigator.of(context).pop(true),
+child: const Text('\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0631\u0648\u062c'),
+),
+],
+),
+),
+);
+
+if (confirmed == true) {
+onLogout();
 }
 }
 

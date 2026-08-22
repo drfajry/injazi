@@ -270,19 +270,37 @@ void main() {
       GoRoute(
         path: '/dashboard',
         builder: (context, state) {
-          return const HomeScreen();
+          return HomeScreen(
+            onLogout: () async {
+              await session.logout();
+              if (!context.mounted) return;
+              context.go('/');
+            },
+          );
         },
       ),
       GoRoute(
         path: '/sources',
         builder: (context, state) {
-          return const HomeScreen();
+          return HomeScreen(
+            onLogout: () async {
+              await session.logout();
+              if (!context.mounted) return;
+              context.go('/');
+            },
+          );
         },
       ),
       GoRoute(
         path: '/portfolio',
         builder: (context, state) {
-          return const HomeScreen();
+          return HomeScreen(
+            onLogout: () async {
+              await session.logout();
+              if (!context.mounted) return;
+              context.go('/');
+            },
+          );
         },
       ),
     ],
