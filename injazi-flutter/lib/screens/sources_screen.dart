@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/api_service.dart';
 
@@ -82,6 +83,30 @@ class _SourcesScreenState extends State<SourcesScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('تعذّر رفع الملف: ${e.toString().replaceFirst('Exception: ', '')}')),
+      );
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  Future<void> _connectGoogleDrive() async {
+    setState(() => _uploading = true);
+
+    try {
+      final url = await widget.api.getGoogleAuthUrl();
+      final uri = Uri.parse(url);
+
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذّر فتح صفحة ربط Google.')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذّر بدء ربط Google Drive: ${e.toString().replaceFirst('Exception: ', '')}')),
       );
     } finally {
       if (mounted) setState(() => _uploading = false);
@@ -181,7 +206,7 @@ class _SourcesScreenState extends State<SourcesScreen> {
             const SizedBox(height: 22),
             _SourceCard(icon: Icons.school_outlined, title: 'منصتي', subtitle: 'اربط حسابك في منصة مدرستي لاستيراد الإنجازات', button: 'ربط منصتي', onTap: () {}),
             const SizedBox(height: 12),
-            _SourceCard(icon: Icons.cloud_outlined, title: 'Google Drive', subtitle: 'استورد الملفات من مساحة Google Drive الخاصة بك', button: 'ربط Google', onTap: () {}),
+            _SourceCard(icon: Icons.cloud_outlined, title: 'Google Drive', subtitle: 'استورد الملفات من مساحة Google Drive الخاصة بك', button: 'ربط Google', onTap: _uploading ? null : _connectGoogleDrive),
             const SizedBox(height: 12),
             _SourceCard(icon: Icons.upload_file_outlined, title: 'رفع ملف', subtitle: 'ارفع مستنداتك مباشرة من جهازك', button: 'اختيار ملف', onTap: _uploading ? null : _uploadFile),
             const SizedBox(height: 12),
