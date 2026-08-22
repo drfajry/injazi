@@ -158,8 +158,10 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           ),
           const SizedBox(height: 22),
           const Text('المعايير', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          const Text('اضغط مطولاً على أي دليل لنقله أو حذفه.', style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
           const SizedBox(height: 10),
-          ..._sections.map((section) => _CriterionCard(section: section, api: widget.api)),
+          ..._sections.map((section) => _CriterionCard(section: section, api: widget.api, allSections: _sections, onChanged: _load)),
         ],
       ),
     );
@@ -169,8 +171,15 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
 class _CriterionCard extends StatefulWidget {
   final Map<String, dynamic> section;
   final ApiService api;
+  final List<Map<String, dynamic>> allSections;
+  final VoidCallback onChanged;
 
-  const _CriterionCard({required this.section, required this.api});
+  const _CriterionCard({
+    required this.section,
+    required this.api,
+    required this.allSections,
+    required this.onChanged,
+  });
 
   @override
   State<_CriterionCard> createState() => _CriterionCardState();
@@ -192,6 +201,124 @@ class _CriterionCardState extends State<_CriterionCard> {
       );
     } finally {
       if (mounted) setState(() => _loadingFileId = null);
+    }
+  }
+
+  Future<void> _showEvidenceActions(Map<String, dynamic> evidence, String currentIndicatorId) async {
+    final evidenceId = evidence['id'] as String;
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.swap_horiz_outlined),
+                title: const Text('نقل إلى مؤشر آخر'),
+                onTap: () => Navigator.pop(context, 'move'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.link_off_outlined),
+                title: const Text('إزالة من هذا المؤشر فقط'),
+                onTap: () => Navigator.pop(context, 'unlink'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Color(0xFFDC2626)),
+                title: const Text('حذف الدليل نهائيًا', style: TextStyle(color: Color(0xFFDC2626))),
+                onTap: () => Navigator.pop(context, 'delete'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (!mounted || action == null) return;
+
+    switch (action) {
+      case 'move':
+        await _moveToAnotherIndicator(evidenceId, currentIndicatorId);
+        break;
+      case 'unlink':
+        await _runAction(() => widget.api.unlinkEvidenceFromIndicator(evidenceId, currentIndicatorId));
+        break;
+      case 'delete':
+        final confirmed = await _confirmDelete();
+        if (confirmed == true) {
+          await _runAction(() => widget.api.deleteEvidence(evidenceId));
+        }
+        break;
+    }
+  }
+
+  Future<bool?> _confirmDelete() {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          title: const Text('حذف الدليل نهائيًا'),
+          content: const Text('سيُحذف هذا الدليل وكل ارتباطاته بالمؤشرات نهائيًا. لا يمكن التراجع عن هذا الإجراء.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('حذف'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _moveToAnotherIndicator(String evidenceId, String currentIndicatorId) async {
+    final allIndicators = <Map<String, String>>[];
+    for (final section in widget.allSections) {
+      for (final indicator in (section['indicators'] as List? ?? [])) {
+        final map = Map<String, dynamic>.from(indicator);
+        allIndicators.add({
+          'id': map['id'] as String,
+          'name': '${section['name']} — ${map['name']}',
+        });
+      }
+    }
+
+    final chosen = await showDialog<String>(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: SimpleDialog(
+          title: const Text('اختر المؤشر الصحيح'),
+          children: allIndicators.map((indicator) {
+            return SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, indicator['id']),
+              child: Text(indicator['name'] ?? '', style: const TextStyle(fontSize: 13)),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+
+    if (chosen == null) return;
+
+    await _runAction(() async {
+      await widget.api.linkEvidenceToIndicator(evidenceId, chosen);
+      await widget.api.unlinkEvidenceFromIndicator(evidenceId, currentIndicatorId);
+    });
+  }
+
+  Future<void> _runAction(Future<void> Function() action) async {
+    try {
+      await action();
+      widget.onChanged();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذّر تنفيذ العملية: ${e.toString().replaceFirst('Exception: ', '')}')),
+      );
     }
   }
 
@@ -221,6 +348,7 @@ class _CriterionCardState extends State<_CriterionCard> {
             (indicator['evidence'] as List? ?? []).map((e) => Map<String, dynamic>.from(e)),
           );
           final hasEvidence = evidenceList.isNotEmpty;
+          final indicatorId = indicator['id'] as String;
 
           return ListTile(
             dense: true,
@@ -246,6 +374,7 @@ class _CriterionCardState extends State<_CriterionCard> {
                               : Icon(fileId != null ? Icons.visibility_outlined : Icons.link_outlined, size: 15),
                           label: Text(e['title'] ?? '', style: const TextStyle(fontSize: 12)),
                           onPressed: fileId == null || isLoading ? null : () => _openFile(fileId),
+                          onLongPress: () => _showEvidenceActions(e, indicatorId),
                         );
                       }).toList(),
                     ),

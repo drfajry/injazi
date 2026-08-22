@@ -494,6 +494,49 @@ class ApiService {
     );
   }
 
+  Future<void> deleteEvidence(String evidenceId) async {
+    final token = await getAccessToken();
+
+    final response = await _client.delete(
+      Uri.parse('$baseUrl/evidence/$evidenceId'),
+      headers: _authorizedHeaders(token),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessage(response.body) ?? 'Failed to delete evidence';
+      throw Exception(message);
+    }
+  }
+
+  Future<void> unlinkEvidenceFromIndicator(String evidenceId, String indicatorId) async {
+    final token = await getAccessToken();
+
+    final response = await _client.delete(
+      Uri.parse('$baseUrl/evidence/$evidenceId/indicators/$indicatorId'),
+      headers: _authorizedHeaders(token),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessage(response.body) ?? 'Failed to unlink evidence';
+      throw Exception(message);
+    }
+  }
+
+  Future<void> linkEvidenceToIndicator(String evidenceId, String indicatorId) async {
+    final token = await getAccessToken();
+
+    final response = await _client.post(
+      Uri.parse('$baseUrl/evidence/$evidenceId/indicators'),
+      headers: _authorizedHeaders(token),
+      body: jsonEncode({'indicatorId': indicatorId}),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessage(response.body) ?? 'Failed to link evidence';
+      throw Exception(message);
+    }
+  }
+
   String? _extractErrorMessage(String body) {
     try {
       final decoded = jsonDecode(body);
