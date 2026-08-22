@@ -72,7 +72,7 @@ sourcesRouter.post('/upload', requireAuth, upload.single('file'), async (req, re
         mimeType: file.mimetype,
         size: file.size,
         originalName: file.originalname,
-        data: file.buffer,
+        data: Uint8Array.from(file.buffer),
       },
       select: { id: true, mimeType: true, size: true, originalName: true, createdAt: true },
     });
