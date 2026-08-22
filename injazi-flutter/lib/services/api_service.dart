@@ -436,6 +436,39 @@ class ApiService {
     return data['url'] as String;
   }
 
+  Future<Map<String, dynamic>> getPortfolioPreview() async {
+    final token = await getAccessToken();
+
+    final response = await _client.get(
+      Uri.parse('$baseUrl/portfolio/preview'),
+      headers: _authorizedHeaders(token),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Failed to load portfolio');
+    }
+
+    final data = Map<String, dynamic>.from(jsonDecode(response.body));
+    return Map<String, dynamic>.from(data['data']);
+  }
+
+  Future<Map<String, dynamic>> generatePortfolio() async {
+    final token = await getAccessToken();
+
+    final response = await _client.post(
+      Uri.parse('$baseUrl/portfolio/generate'),
+      headers: _authorizedHeaders(token),
+      body: jsonEncode({}),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessage(response.body) ?? 'Failed to generate portfolio';
+      throw Exception(message);
+    }
+
+    return Map<String, dynamic>.from(jsonDecode(response.body));
+  }
+
   String? _extractErrorMessage(String body) {
     try {
       final decoded = jsonDecode(body);

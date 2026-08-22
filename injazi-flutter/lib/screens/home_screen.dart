@@ -24,7 +24,7 @@ final dashboardKey = GlobalKey<DashboardTabState>();
 late final List<Widget> tabs = [
 DashboardTab(key: dashboardKey, api: widget.api, onLogout: widget.onLogout),
 SourcesScreen(api: widget.api),
-const PortfolioScreen(),
+PortfolioScreen(api: widget.api),
 ];
 
 @override
