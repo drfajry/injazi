@@ -16,7 +16,12 @@ class CoverageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final percent = (value * 100).round();
+    // Show one decimal place instead of rounding to a whole number: with
+    // only a handful of indicators matched out of 53 total, the true
+    // percentage is often under 1% — rounding that to "0%" looks like no
+    // progress happened at all, even when evidence has been matched.
+    final percent = value * 100;
+    final percentLabel = percent < 10 ? percent.toStringAsFixed(1) : percent.round().toString();
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -47,7 +52,7 @@ class CoverageCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '$percent%',
+                '$percentLabel%',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 42,
