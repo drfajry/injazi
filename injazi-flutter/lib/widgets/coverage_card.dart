@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 class CoverageCard extends StatelessWidget {
   final double value;
@@ -16,6 +16,7 @@ class CoverageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final percent = (value * 100).round();
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -46,7 +47,7 @@ class CoverageCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '%',
+                '$percent%',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 42,
@@ -54,10 +55,15 @@ class CoverageCard extends StatelessWidget {
                 ),
               ),
               const Padding(
-                padding: EdgeInsets.only(bottom: 8, right: 8),
+                padding: EdgeInsets.only(
+                  bottom: 8,
+                  right: 8,
+                ),
                 child: Text(
                   '\u0645\u0646 \u0627\u0644\u0645\u0644\u0641',
-                  style: TextStyle(color: Colors.white70),
+                  style: TextStyle(
+                    color: Colors.white70,
+                  ),
                 ),
               ),
             ],
@@ -79,11 +85,15 @@ class CoverageCard extends StatelessWidget {
             spacing: 10,
             runSpacing: 8,
             children: [
-              _Pill(' \u0645\u0643\u062a\u0645\u0644'),
               _Pill(
-                ' \u0628\u062d\u0627\u062c\u0629 \u0644\u0644\u062f\u0639\u0645',
+                '$complete \u0645\u0643\u062a\u0645\u0644',
               ),
-              _Pill(' \u0645\u0641\u0642\u0648\u062f'),
+              _Pill(
+                '$needsSupport \u0628\u062d\u0627\u062c\u0629 \u0644\u0644\u062f\u0639\u0645',
+              ),
+              _Pill(
+                '$missing \u0645\u0641\u0642\u0648\u062f',
+              ),
             ],
           ),
         ],
@@ -118,4 +128,3 @@ class _Pill extends StatelessWidget {
     );
   }
 }
-
