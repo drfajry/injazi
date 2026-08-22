@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { env } from './config/env.js';
 import { prisma } from './db/prisma.js';
+import { seedIndicators } from './db/seed-indicators.js';
 import { authRouter } from './modules/auth/routes.js';
 import { profileRouter } from './modules/profile/routes.js';
 import { sourcesRouter } from './modules/sources/routes.js';
@@ -28,6 +29,13 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 
 const server = app.listen(env.PORT, () => {
   console.log(`إنجازي backend listening on http://localhost:${env.PORT}`);
+});
+
+// Seed reference indicators after boot. Safe to run on every deploy: uses
+// upsert, so it never duplicates data. Runs in the background so it never
+// delays server startup or blocks incoming requests.
+seedIndicators().catch((error) => {
+  console.error('Indicator seed failed (server will keep running):', error);
 });
 
 const shutdown = async () => {

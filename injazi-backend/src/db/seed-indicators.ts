@@ -35,7 +35,7 @@ const indicators = [
   { id: 'ind-c4-i3', criterionId: 'crit-4', code: 'C4-I3', name: `استخدام استراتيجيات تعمل على تنمية القدرة على التفكير والإبداع.`, description: `المعلم يشجع الطلاب على التفكير النقدي، حل المشكلات، والإبداع.` },
   { id: 'ind-c4-i4', criterionId: 'crit-4', code: 'C4-I4', name: `استخدام استراتيجيات تنهي مهارات الحوار والمناقشة.`, description: `المعلم يُنمّي مهارات التواصل لدى الطلاب من خلال تشجيعهم على الحوار والنقاش.` },
   { id: 'ind-c5-i1', criterionId: 'crit-5', code: 'C5-I1', name: `تحديد أهداف ومعايير واضحة ليعرف المتعلمون ما يتوقع منهم تحقيقه.`, description: `المعلم يوضح للطلاب في بداية الدرس أو الوحدة ما الذي سيتعلمونه، وما هي المعايير التي سيتم تقييمهم عليها.` },
-  { id: 'ind-c5-i2', criterionId: 'crit-5', code: 'C5-I2', name: `تقديم إفادة سريعة ومحددة فور ملاحظة الأداء، مع التركيز على الإيجابيات وتقديم مقترحات بناءة للتحسين.`, description: `المعلم يُعطي ملاحظات فورية ودقيقة بعد كل مهمة أو نشاط، ويُشير إلى ما做得 جيدًا وما يمكن تحسينه.` },
+  { id: 'ind-c5-i2', criterionId: 'crit-5', code: 'C5-I2', name: `تقديم إفادة سريعة ومحددة فور ملاحظة الأداء، مع التركيز على الإيجابيات وتقديم مقترحات بناءة للتحسين.`, description: `المعلم يُعطي ملاحظات فورية ودقيقة بعد كل مهمة أو نشاط، ويُشير إلى ما تم إنجازه جيدًا وما يمكن تحسينه.` },
   { id: 'ind-c5-i3', criterionId: 'crit-5', code: 'C5-I3', name: `تكيف الإفادة وفق الاحتياجات الفردية لضمان الفعال وتشجيع المتعلمين على طرح الأسئلة، وتطبيق الاقتراحات.`, description: `المعلم لا يعطي نفس الملاحظة لكل الطلاب، بل يعدلها حسب مستوى كل طالب، ويحفزهم على السؤال والتطبيق.` },
   { id: 'ind-c5-i4', criterionId: 'crit-5', code: 'C5-I4', name: `تعزيز الثقة وتشجيع التطور من خلال تقديم ملاحظات تشجيعية وفرص لتحسين الأداء.`, description: `المعلم لا يركز فقط على الأخطاء، بل يشجع الطلاب على الاستمرار والتطوير من خلال كلمات إيجابية، ويوفر لهم فرصًا لإعادة المحاولة.` },
   { id: 'ind-c5-i5', criterionId: 'crit-5', code: 'C5-I5', name: `استخدام التكنولوجيا لتقديم الإفادة مبتكرة، مثل البريد الإلكتروني ومنصات التعلم.`, description: `المعلم يستخدم أدوات رقمية لإعطاء ملاحظات سريعة، مبتكرة، وسهلة الوصول إليها.` },
@@ -72,7 +72,7 @@ const indicators = [
   { id: 'ind-c11-i9', criterionId: 'crit-11', code: 'C11-I9', name: `تطبيق التقويم الختامي لمعرفة مدى تحقيق أهداف العملية التعليمية وقياس تقدم التعلم للحصول على مستويات الطلبة.`, description: `المعلم يستخدم التقويم الختامي لقياس مدى تحقيق الطلاب للأهداف التعليمية.` },
 ];
 
-async function main() {
+export async function seedIndicators(): Promise<void> {
   console.log(`Seeding ${criteria.length} criteria and ${indicators.length} indicators...`);
 
   for (const criterion of criteria) {
@@ -98,11 +98,16 @@ async function main() {
   console.log('Seed complete.');
 }
 
-main()
-  .catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+// Allows running this file directly as a standalone script too: `npm run seed`
+const isMainModule = process.argv[1]?.endsWith('seed-indicators.ts') || process.argv[1]?.endsWith('seed-indicators.js');
+
+if (isMainModule) {
+  seedIndicators()
+    .catch((error) => {
+      console.error(error);
+      process.exitCode = 1;
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}
