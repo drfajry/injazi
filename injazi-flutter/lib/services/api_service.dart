@@ -318,6 +318,32 @@ class ApiService {
         .toList();
   }
 
+  Future<void> approveEvidence(String id) async {
+    final token = await getAccessToken();
+
+    final response = await _client.post(
+      Uri.parse('$baseUrl/evidence/$id/approve'),
+      headers: _authorizedHeaders(token),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Failed to approve evidence');
+    }
+  }
+
+  Future<void> rejectEvidence(String id) async {
+    final token = await getAccessToken();
+
+    final response = await _client.post(
+      Uri.parse('$baseUrl/evidence/$id/reject'),
+      headers: _authorizedHeaders(token),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Failed to reject evidence');
+    }
+  }
+
   Future<Map<String, dynamic>> getCoverage() async {
     final token = await getAccessToken();
 

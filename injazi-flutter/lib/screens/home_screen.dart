@@ -255,7 +255,17 @@ else
 ...(_evidence.map(
 (evidence) => Padding(
 padding: const EdgeInsets.only(bottom: 8),
-child: EvidenceTile(evidence: evidence),
+child: EvidenceTile(
+evidence: evidence,
+onApprove: () async {
+await widget.api.approveEvidence(evidence.id);
+await _load();
+},
+onReject: () async {
+await widget.api.rejectEvidence(evidence.id);
+await _load();
+},
+),
 ),
 )),
 ],
