@@ -19,9 +19,10 @@ State<HomeScreen> createState() => _HomeScreenState();
 
 class _HomeScreenState extends State<HomeScreen> {
 int currentIndex = 0;
+final dashboardKey = GlobalKey<DashboardTabState>();
 
 late final List<Widget> tabs = [
-DashboardTab(api: widget.api, onLogout: widget.onLogout),
+DashboardTab(key: dashboardKey, api: widget.api, onLogout: widget.onLogout),
 SourcesScreen(api: widget.api),
 const PortfolioScreen(),
 ];
@@ -43,6 +44,14 @@ onDestinationSelected: (index) {
 setState(() {
 currentIndex = index;
 });
+// Refresh the dashboard's data every time the user navigates back
+// to it, since evidence/coverage may have changed on another tab
+// (e.g. after uploading a file on the Sources tab). IndexedStack
+// keeps DashboardTab alive in memory, so without this it would
+// keep showing whatever it loaded on first open.
+if (index == 0) {
+dashboardKey.currentState?.reload();
+}
 },
 destinations: const [
 NavigationDestination(
@@ -83,10 +92,10 @@ final VoidCallback? onLogout;
 const DashboardTab({super.key, required this.api, this.onLogout});
 
 @override
-State<DashboardTab> createState() => _DashboardTabState();
+State<DashboardTab> createState() => DashboardTabState();
 }
 
-class _DashboardTabState extends State<DashboardTab> {
+class DashboardTabState extends State<DashboardTab> {
 bool _loading = true;
 String? _error;
 double _coverageValue = 0;
@@ -100,6 +109,8 @@ void initState() {
 super.initState();
 _load();
 }
+
+Future<void> reload() => _load();
 
 Future<void> _load() async {
 setState(() {
