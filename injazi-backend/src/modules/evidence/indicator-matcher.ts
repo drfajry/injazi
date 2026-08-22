@@ -5,7 +5,7 @@ const MAX_LINKS_PER_EVIDENCE = 3;
 
 // Below this similarity score, a match is too weak to be useful — skip it
 // rather than create noisy, low-confidence links.
-const MIN_MATCH_SCORE = 0.15;
+const MIN_MATCH_SCORE = 0.25;
 
 // Common Arabic connector/filler words that carry no topical meaning and
 // would otherwise dilute keyword overlap scoring.
@@ -14,6 +14,15 @@ const ARABIC_STOPWORDS = new Set([
   'هذا', 'هذه', 'ذلك', 'التي', 'الذي', 'الذين', 'كل', 'بعض', 'كما', 'قد',
   'لا', 'ما', 'لم', 'لن', 'إذا', 'حتى', 'بين', 'عند', 'بعد', 'قبل', 'خلال',
   'التعلم', 'المعلم', 'الطالب', 'المتعلم', 'يتم', 'يجب', 'يمكن', 'الذي', 'التي',
+  // Generic administrative/pedagogical vocabulary that appears across MANY
+  // indicator descriptions regardless of topic. Without excluding these,
+  // a handful of incidental hits (e.g. any document mentioning "معلومات"
+  // or "بيانات") can inflate the overlap score against short indicator
+  // text, producing spurious matches unrelated to the actual content.
+  'معلومات', 'المعلومات', 'بيانات', 'البيانات', 'العمل', 'الأداء', 'الأنشطة',
+  'نشاط', 'المهنية', 'المهني', 'العملية', 'التعليمية', 'المدرسة', 'الفصل',
+  'الطلاب', 'الطالبات', 'المتعلمين', 'المتعلمات', 'يستخدم', 'استخدام',
+  'وفق', 'وفقًا', 'ذات', 'صلة', 'مناسب', 'مناسبة', 'مختلف', 'مختلفة',
 ]);
 
 function normalizeArabic(text: string): string {

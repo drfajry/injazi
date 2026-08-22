@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/api_service.dart';
+import '../utils/indicator_picker.dart';
 
 class SourcesScreen extends StatefulWidget {
   final ApiService api;
@@ -69,6 +70,8 @@ class _SourcesScreenState extends State<SourcesScreen> {
 
       final data = result['data'] as Map<String, dynamic>?;
       final textExtracted = data?['textExtracted'] == true;
+      final evidence = data?['evidence'] as Map<String, dynamic>?;
+      final evidenceId = evidence?['id'] as String?;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -79,6 +82,10 @@ class _SourcesScreenState extends State<SourcesScreen> {
           ),
         ),
       );
+
+      if (evidenceId != null) {
+        await _offerIndicatorAssignment(evidenceId);
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -155,6 +162,8 @@ class _SourcesScreenState extends State<SourcesScreen> {
 
       final data = result['data'] as Map<String, dynamic>?;
       final textExtracted = data?['textExtracted'] == true;
+      final evidence = data?['evidence'] as Map<String, dynamic>?;
+      final evidenceId = evidence?['id'] as String?;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -165,6 +174,10 @@ class _SourcesScreenState extends State<SourcesScreen> {
           ),
         ),
       );
+
+      if (evidenceId != null) {
+        await _offerIndicatorAssignment(evidenceId);
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -172,6 +185,24 @@ class _SourcesScreenState extends State<SourcesScreen> {
       );
     } finally {
       if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  Future<void> _offerIndicatorAssignment(String evidenceId) async {
+    final indicatorId = await pickIndicator(context, widget.api);
+    if (indicatorId == null || !mounted) return;
+
+    try {
+      await widget.api.linkEvidenceToIndicator(evidenceId, indicatorId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم ربط الدليل بالمؤشر المختار.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذّر الربط بالمؤشر: ${e.toString().replaceFirst('Exception: ', '')}')),
+      );
     }
   }
 

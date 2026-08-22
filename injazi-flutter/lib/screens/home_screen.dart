@@ -257,6 +257,7 @@ else
 padding: const EdgeInsets.only(bottom: 8),
 child: EvidenceTile(
 evidence: evidence,
+api: widget.api,
 onApprove: () async {
 await widget.api.approveEvidence(evidence.id);
 await _load();
@@ -265,6 +266,7 @@ onReject: () async {
 await widget.api.rejectEvidence(evidence.id);
 await _load();
 },
+onLinked: _load,
 ),
 ),
 )),

@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 
 import '../models/evidence.dart';
+import '../services/api_service.dart';
+import '../utils/indicator_picker.dart';
 
 class EvidenceTile extends StatefulWidget {
   final Evidence evidence;
+  final ApiService api;
   final Future<void> Function()? onApprove;
   final Future<void> Function()? onReject;
+  final VoidCallback? onLinked;
 
   const EvidenceTile({
     super.key,
     required this.evidence,
+    required this.api,
     this.onApprove,
     this.onReject,
+    this.onLinked,
   });
 
   @override
@@ -36,6 +42,16 @@ class _EvidenceTileState extends State<EvidenceTile> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _linkToIndicator() async {
+    final indicatorId = await pickIndicator(context, widget.api);
+    if (indicatorId == null || !mounted) return;
+
+    await _handle(() async {
+      await widget.api.linkEvidenceToIndicator(widget.evidence.id, indicatorId);
+      widget.onLinked?.call();
+    });
   }
 
   @override
@@ -102,6 +118,16 @@ class _EvidenceTileState extends State<EvidenceTile> {
                 const SizedBox(width: 8),
                 _ConfidenceBadge(value: widget.evidence.confidence),
               ],
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: _busy ? null : _linkToIndicator,
+                icon: const Icon(Icons.link_outlined, size: 16),
+                label: const Text('ربط بمؤشر', style: TextStyle(fontSize: 12)),
+                style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 30)),
+              ),
             ),
             if (needsReview) ...[
               const SizedBox(height: 10),
