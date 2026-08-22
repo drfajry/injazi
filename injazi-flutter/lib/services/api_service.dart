@@ -440,7 +440,7 @@ class ApiService {
     final token = await getAccessToken();
 
     final response = await _client.get(
-      Uri.parse('$baseUrl/portfolio/preview'),
+      Uri.parse('$baseUrl/me/portfolio/preview'),
       headers: _authorizedHeaders(token),
     );
 
@@ -457,7 +457,7 @@ class ApiService {
     final token = await getAccessToken();
 
     final response = await _client.post(
-      Uri.parse('$baseUrl/portfolio/generate'),
+      Uri.parse('$baseUrl/me/portfolio/generate'),
       headers: _authorizedHeaders(token),
       body: jsonEncode({}),
     );
