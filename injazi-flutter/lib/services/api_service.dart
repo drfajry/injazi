@@ -402,6 +402,23 @@ class ApiService {
     return Map<String, dynamic>.from(jsonDecode(response.body));
   }
 
+  Future<Map<String, dynamic>> addUrlEvidence(String url) async {
+    final token = await getAccessToken();
+
+    final response = await _client.post(
+      Uri.parse('$baseUrl/sources/url'),
+      headers: _authorizedHeaders(token),
+      body: jsonEncode({'url': url.trim()}),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessage(response.body) ?? 'Failed to add URL';
+      throw Exception(message);
+    }
+
+    return Map<String, dynamic>.from(jsonDecode(response.body));
+  }
+
   String? _extractErrorMessage(String body) {
     try {
       final decoded = jsonDecode(body);

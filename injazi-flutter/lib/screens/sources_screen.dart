@@ -88,6 +88,68 @@ class _SourcesScreenState extends State<SourcesScreen> {
     }
   }
 
+  Future<void> _addUrl() async {
+    final controller = TextEditingController();
+
+    final url = await showDialog<String>(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          title: const Text('إضافة من رابط'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: TextInputType.url,
+            decoration: const InputDecoration(
+              hintText: 'https://example.com/article',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+              child: const Text('إضافة'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (url == null || url.isEmpty) return;
+
+    setState(() => _uploading = true);
+
+    try {
+      final result = await widget.api.addUrlEvidence(url);
+
+      if (!mounted) return;
+
+      final data = result['data'] as Map<String, dynamic>?;
+      final textExtracted = data?['textExtracted'] == true;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            textExtracted
+                ? 'تم جلب محتوى الرابط وإضافته كدليل جديد بنجاح.'
+                : 'تم إضافة الرابط، لكن تعذّر استخراج محتوى نصي منه.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذّر إضافة الرابط: ${e.toString().replaceFirst('Exception: ', '')}')),
+      );
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
   String? _guessMimeType(String? extension) {
     switch (extension?.toLowerCase()) {
       case 'pdf':
@@ -124,6 +186,8 @@ class _SourcesScreenState extends State<SourcesScreen> {
             _SourceCard(icon: Icons.upload_file_outlined, title: 'رفع ملف', subtitle: 'ارفع مستنداتك مباشرة من جهازك', button: 'اختيار ملف', onTap: _uploading ? null : _uploadFile),
             const SizedBox(height: 12),
             _SourceCard(icon: Icons.camera_alt_outlined, title: 'التقاط صورة', subtitle: 'صوّر شهادة أو مستندًا مباشرة بالكاميرا', button: 'التقاط', onTap: _uploading ? null : _capture),
+            const SizedBox(height: 12),
+            _SourceCard(icon: Icons.link_outlined, title: 'إضافة من رابط', subtitle: 'الصق رابط مقال أو تقرير وسنستخرج محتواه تلقائيًا', button: 'إضافة رابط', onTap: _uploading ? null : _addUrl),
           ],
         ),
         if (_uploading)
