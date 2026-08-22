@@ -6,6 +6,7 @@ import { prisma } from '../../db/prisma.js';
 import { requireAuth, getAuthenticatedUserId } from '../auth/middleware.js';
 import { extractText } from './text-extraction.js';
 import { ingestUrl, UrlIngestionError } from './url-ingestion.js';
+import { createEvidenceCandidate } from '../evidence/evidence-engine.js';
 import {
   isGoogleDriveConfigured,
   buildAuthUrl,
@@ -98,16 +99,13 @@ sourcesRouter.post('/upload', requireAuth, upload.single('file'), async (req, re
     // the file type isn't supported yet (e.g. images require OCR, not built yet).
     const extractedText = await extractText(file.buffer, file.mimetype);
 
-    const evidence = await prisma.evidence.create({
-      data: {
-        userId,
-        title,
-        description: extractedText,
-        type: guessEvidenceType(file.mimetype),
-        confidence: 0.95, // manual, user-provided upload — high confidence
-        status: 'APPROVED',
-        sourceItemId: sourceItem.id,
-      },
+    const evidence = await createEvidenceCandidate({
+      userId,
+      title,
+      description: extractedText ?? undefined,
+      type: guessEvidenceType(file.mimetype),
+      confidence: 0.95, // manual, user-provided upload — high confidence
+      sourceItemId: sourceItem.id,
     });
 
     const evidenceFile = await prisma.evidenceFile.create({
@@ -165,16 +163,15 @@ sourcesRouter.post('/url', requireAuth, async (req, res, next) => {
       },
     });
 
-    const evidence = await prisma.evidence.create({
-      data: {
-        userId,
-        title: page.title,
-        description: page.text,
-        type: EvidenceType.LINK,
-        confidence: 0.9, // fetched successfully but content wasn't reviewed — slightly below auto-approve threshold
-        status: page.text ? 'APPROVED' : 'SUGGESTED',
-        sourceItemId: sourceItem.id,
-      },
+    const evidence = await createEvidenceCandidate({
+      userId,
+      title: page.title,
+      description: page.text ?? undefined,
+      type: EvidenceType.LINK,
+      // fetched successfully but no readable text found — treat as needing
+      // review rather than auto-approving an evidence item with no content.
+      confidence: page.text ? 0.9 : 0.5,
+      sourceItemId: sourceItem.id,
     });
 
     res.status(201).json({

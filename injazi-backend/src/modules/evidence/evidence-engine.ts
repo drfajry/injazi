@@ -1,5 +1,6 @@
 ﻿import { EvidenceStatus, EvidenceType, Prisma } from '@prisma/client';
 import { prisma } from '../../db/prisma.js';
+import { matchEvidenceToIndicators } from './indicator-matcher.js';
 
 type Candidate = {
 userId: string;
@@ -14,7 +15,7 @@ metadata?: Prisma.InputJsonValue;
 };
 
 export async function createEvidenceCandidate(candidate: Candidate) {
-return prisma.evidence.create({
+const evidence = await prisma.evidence.create({
 data: {
 userId: candidate.userId,
 academicYearId: candidate.academicYearId,
@@ -31,6 +32,15 @@ sourceItemId: candidate.sourceItemId,
 metadata: candidate.metadata,
 },
 });
+
+// Matches the new evidence against the 53 official indicators in the
+// background. Never blocks or fails evidence creation — a matching
+// failure just means no links get created, which is safe.
+matchEvidenceToIndicators(evidence.id).catch((error) => {
+console.error(`Indicator matching failed for evidence ${evidence.id}:`, error);
+});
+
+return evidence;
 }
 
 export function shouldAutoApprove(confidence: number): boolean {
