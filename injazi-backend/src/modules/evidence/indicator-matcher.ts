@@ -4,10 +4,8 @@ import { prisma } from '../../db/prisma.js';
 const MAX_LINKS_PER_EVIDENCE = 3;
 
 // Below this similarity score, a match is too weak to be useful — skip it
-// rather than create noisy, low-confidence links. Tuned empirically: real
-// evidence/indicator text pairs on the same topic typically score 0.06–0.15
-// with this method (short indicator texts naturally cap Jaccard overlap).
-const MIN_MATCH_SCORE = 0.06;
+// rather than create noisy, low-confidence links.
+const MIN_MATCH_SCORE = 0.15;
 
 // Common Arabic connector/filler words that carry no topical meaning and
 // would otherwise dilute keyword overlap scoring.
@@ -41,12 +39,14 @@ function tokenize(text: string): Set<string> {
 }
 
 /**
- * Jaccard similarity between two token sets: size of intersection over size
- * of union. Simple, explainable, and free — no external API calls. This is
- * intentionally a stepping stone; a future version can swap this function
- * for an LLM-based classifier without changing anything that calls it.
+ * Overlap coefficient between two token sets: size of intersection over the
+ * size of the SMALLER set. Unlike Jaccard, this isn't diluted when one
+ * document (typically the evidence — an exam, report, or plan) is much
+ * longer than the other (the indicator's short description sentence). It
+ * effectively measures "what fraction of the indicator's vocabulary shows
+ * up in this evidence?", which is what actually matters here.
  */
-function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
+function overlapCoefficient(a: Set<string>, b: Set<string>): number {
   if (a.size === 0 || b.size === 0) return 0;
 
   let intersectionSize = 0;
@@ -54,8 +54,7 @@ function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
     if (b.has(word)) intersectionSize += 1;
   }
 
-  const unionSize = a.size + b.size - intersectionSize;
-  return unionSize === 0 ? 0 : intersectionSize / unionSize;
+  return intersectionSize / Math.min(a.size, b.size);
 }
 
 /**
@@ -89,7 +88,7 @@ export async function matchEvidenceToIndicators(evidenceId: string): Promise<num
     .map((indicator) => {
       const indicatorText = [indicator.name, indicator.description].filter(Boolean).join(' ');
       const indicatorTokens = tokenize(indicatorText);
-      const score = jaccardSimilarity(evidenceTokens, indicatorTokens);
+      const score = overlapCoefficient(evidenceTokens, indicatorTokens);
       return { indicatorId: indicator.id, indicatorCode: indicator.code, score };
     })
     .sort((a, b) => b.score - a.score);
@@ -111,7 +110,7 @@ export async function matchEvidenceToIndicators(evidenceId: string): Promise<num
       evidenceId,
       indicatorId: match.indicatorId,
       matchScore: Number(match.score.toFixed(3)),
-      modelVersion: 'keyword-jaccard-v1',
+      modelVersion: 'keyword-overlap-v2',
     })),
   });
 
