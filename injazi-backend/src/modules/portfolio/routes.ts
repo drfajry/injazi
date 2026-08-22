@@ -2,8 +2,62 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../db/prisma.js';
 import { requireAuth, getAuthenticatedUserId } from '../auth/middleware.js';
+import { buildPortfolioExportHtml } from './export-html.js';
 
 export const portfolioRouter = Router();
+
+async function buildPortfolioData(userId: string) {
+  const criteria = await prisma.criterion.findMany({
+    orderBy: { code: 'asc' },
+    include: {
+      indicators: {
+        include: {
+          links: {
+            where: { evidence: { userId, status: 'APPROVED' } },
+            include: { evidence: { include: { files: true } } },
+            orderBy: { matchScore: 'desc' },
+          },
+        },
+      },
+    },
+  });
+
+  const sections = criteria.map((criterion) => {
+    const indicators = criterion.indicators.map((indicator) => ({
+      id: indicator.id,
+      code: indicator.code,
+      name: indicator.name,
+      evidence: indicator.links.map((link) => ({
+        id: link.evidence.id,
+        title: link.evidence.title,
+        type: link.evidence.type,
+        matchScore: link.matchScore,
+        fileId: link.evidence.files[0]?.id ?? null,
+      })),
+    }));
+
+    const coveredCount = indicators.filter((indicator) => indicator.evidence.length > 0).length;
+
+    return {
+      criterionId: criterion.id,
+      code: criterion.code,
+      name: criterion.name,
+      totalIndicators: indicators.length,
+      coveredIndicators: coveredCount,
+      indicators,
+    };
+  });
+
+  const totalIndicators = sections.reduce((sum, section) => sum + section.totalIndicators, 0);
+  const coveredIndicators = sections.reduce((sum, section) => sum + section.coveredIndicators, 0);
+
+  return {
+    sections,
+    totalIndicators,
+    coveredIndicators,
+    overallCoverage: totalIndicators ? Number((coveredIndicators / totalIndicators).toFixed(3)) : 0,
+  };
+}
 
 /**
  * Live, computed view of the portfolio: every official criterion, its
@@ -14,59 +68,32 @@ export const portfolioRouter = Router();
 portfolioRouter.get('/preview', requireAuth, async (req, res, next) => {
   try {
     const userId = getAuthenticatedUserId(req);
+    const data = await buildPortfolioData(userId);
+    res.json({ data });
+  } catch (error) { next(error); }
+});
 
-    const criteria = await prisma.criterion.findMany({
-      orderBy: { code: 'asc' },
-      include: {
-        indicators: {
-          include: {
-            links: {
-              where: { evidence: { userId, status: 'APPROVED' } },
-              include: { evidence: { include: { files: true } } },
-              orderBy: { matchScore: 'desc' },
-            },
-          },
-        },
-      },
+/**
+ * Returns a full, print-ready HTML document of the whole portfolio. Opened
+ * directly by the browser (not downloaded as JSON) — the person uses the
+ * browser's own Print → Save as PDF, which renders Arabic RTL correctly
+ * without needing a heavy PDF-generation dependency on the server.
+ */
+portfolioRouter.get('/export', requireAuth, async (req, res, next) => {
+  try {
+    const userId = getAuthenticatedUserId(req);
+    const [data, profile] = await Promise.all([
+      buildPortfolioData(userId),
+      prisma.teacherProfile.findUnique({ where: { userId } }),
+    ]);
+
+    const html = buildPortfolioExportHtml({
+      teacherName: profile?.name ?? 'المعلم',
+      ...data,
     });
 
-    const sections = criteria.map((criterion) => {
-      const indicators = criterion.indicators.map((indicator) => ({
-        id: indicator.id,
-        code: indicator.code,
-        name: indicator.name,
-        evidence: indicator.links.map((link) => ({
-          id: link.evidence.id,
-          title: link.evidence.title,
-          type: link.evidence.type,
-          matchScore: link.matchScore,
-          fileId: link.evidence.files[0]?.id ?? null,
-        })),
-      }));
-
-      const coveredCount = indicators.filter((indicator) => indicator.evidence.length > 0).length;
-
-      return {
-        criterionId: criterion.id,
-        code: criterion.code,
-        name: criterion.name,
-        totalIndicators: indicators.length,
-        coveredIndicators: coveredCount,
-        indicators,
-      };
-    });
-
-    const totalIndicators = sections.reduce((sum, section) => sum + section.totalIndicators, 0);
-    const coveredIndicators = sections.reduce((sum, section) => sum + section.coveredIndicators, 0);
-
-    res.json({
-      data: {
-        sections,
-        totalIndicators,
-        coveredIndicators,
-        overallCoverage: totalIndicators ? Number((coveredIndicators / totalIndicators).toFixed(3)) : 0,
-      },
-    });
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
   } catch (error) { next(error); }
 });
 

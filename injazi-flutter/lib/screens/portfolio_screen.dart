@@ -78,6 +78,29 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     }
   }
 
+  bool _exporting = false;
+
+  Future<void> _exportPdf() async {
+    setState(() => _exporting = true);
+
+    try {
+      final htmlBytes = await widget.api.getPortfolioExportHtml();
+      previewFileInNewTab(htmlBytes, 'text/html', 'ملف_الإنجاز.html');
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('فُتحت صفحة الملف بتبويب جديد — اضغط Ctrl+P واختر "حفظ كـ PDF".')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذّر تجهيز الملف: ${e.toString().replaceFirst('Exception: ', '')}')),
+      );
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -142,16 +165,30 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                   ],
                 ),
                 const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: _generating ? null : _generate,
-                    style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: const Color(0xFF0F766E)),
-                    icon: _generating
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.auto_awesome_outlined),
-                    label: const Text('إنشاء نسخة جديدة'),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: _generating ? null : _generate,
+                        style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: const Color(0xFF0F766E)),
+                        icon: _generating
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.auto_awesome_outlined),
+                        label: const Text('نسخة جديدة'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _exporting ? null : _exportPdf,
+                        style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white)),
+                        icon: _exporting
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.picture_as_pdf_outlined),
+                        label: const Text('تصدير PDF'),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -535,6 +536,21 @@ class ApiService {
       final message = _extractErrorMessage(response.body) ?? 'Failed to link evidence';
       throw Exception(message);
     }
+  }
+
+  Future<Uint8List> getPortfolioExportHtml() async {
+    final token = await getAccessToken();
+
+    final response = await _client.get(
+      Uri.parse('$baseUrl/me/portfolio/export'),
+      headers: _authorizedHeaders(token),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Failed to generate portfolio export (${response.statusCode})');
+    }
+
+    return response.bodyBytes;
   }
 
   String? _extractErrorMessage(String body) {
