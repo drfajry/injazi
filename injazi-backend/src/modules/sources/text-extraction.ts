@@ -1,5 +1,6 @@
 import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
+import * as XLSX from 'xlsx';
 
 // Cap stored extracted text so a huge document doesn't bloat the database.
 const MAX_EXTRACTED_CHARS = 8000;
@@ -8,6 +9,8 @@ const SUPPORTED_MIME_TYPES = new Set([
   'application/pdf',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'text/plain',
 ]);
 
@@ -35,6 +38,21 @@ export async function extractText(buffer: Buffer, mimeType: string): Promise<str
 
     if (mimeType === 'text/plain') {
       return truncate(buffer.toString('utf-8'));
+    }
+
+    if (
+      mimeType === 'application/vnd.ms-excel' ||
+      mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ) {
+      const workbook = XLSX.read(buffer, { type: 'buffer' });
+      const sheetTexts = workbook.SheetNames.map((sheetName) => {
+        const sheet = workbook.Sheets[sheetName];
+        // sheet_to_csv gives a compact, readable text dump of every cell —
+        // good enough for keyword matching without needing to understand
+        // the spreadsheet's structure.
+        return XLSX.utils.sheet_to_csv(sheet);
+      });
+      return truncate(sheetTexts.join(' '));
     }
 
     // application/msword (legacy .doc binary format) and images are not
