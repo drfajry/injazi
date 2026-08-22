@@ -152,6 +152,29 @@ class ApiService {
       throw Exception('Verification code request failed');
     }
   }
+  Future<void> resetPassword({
+    required String token,
+    required String password,
+  }) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/auth/reset-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'token': token,
+        'password': password,
+      }),
+    );
+
+    final decoded = jsonDecode(response.body);
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      if (decoded is Map && decoded['error'] != null) {
+        throw Exception(decoded['error'].toString());
+      }
+
+      throw Exception('Password reset failed');
+    }
+  }
   Future<Map<String, dynamic>?> getProfile() async {
     final token = await getAccessToken();
 

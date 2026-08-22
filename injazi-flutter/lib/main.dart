@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,6 +7,7 @@ import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/verify_email_screen.dart';
+import 'screens/reset_password_screen.dart';
 import 'screens/landing_screen.dart';
 import 'screens/profile_setup_screen.dart';
 import 'services/api_service.dart';
@@ -235,6 +236,16 @@ void main() {
           return VerifyEmailScreen(
             email: email,
             onVerified: session.markAuthenticatedAfterEmailVerification,
+          );
+        },
+      ),      GoRoute(
+        path: '/reset-password',
+        builder: (context, state) {
+          final token =
+              state.uri.queryParameters['token'] ?? '';
+
+          return ResetPasswordScreen(
+            token: token,
           );
         },
       ),      GoRoute(
