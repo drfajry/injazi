@@ -101,7 +101,7 @@ class ApiService {
     required String email,
   }) async {
     final response = await _client.post(
-      Uri.parse('/auth/forgot-password'),
+      Uri.parse('$baseUrl/auth/forgot-password'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email.trim().toLowerCase()}),
     );
