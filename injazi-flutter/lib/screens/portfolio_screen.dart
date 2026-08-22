@@ -1,6 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import '../utils/file_preview_web.dart';
 
 class PortfolioScreen extends StatefulWidget {
   final ApiService api;
@@ -156,20 +159,45 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           const SizedBox(height: 22),
           const Text('المعايير', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
           const SizedBox(height: 10),
-          ..._sections.map((section) => _CriterionCard(section: section)),
+          ..._sections.map((section) => _CriterionCard(section: section, api: widget.api)),
         ],
       ),
     );
   }
 }
 
-class _CriterionCard extends StatelessWidget {
+class _CriterionCard extends StatefulWidget {
   final Map<String, dynamic> section;
+  final ApiService api;
 
-  const _CriterionCard({required this.section});
+  const _CriterionCard({required this.section, required this.api});
+
+  @override
+  State<_CriterionCard> createState() => _CriterionCardState();
+}
+
+class _CriterionCardState extends State<_CriterionCard> {
+  String? _loadingFileId;
+
+  Future<void> _openFile(String fileId) async {
+    setState(() => _loadingFileId = fileId);
+
+    try {
+      final file = await widget.api.downloadEvidenceFile(fileId);
+      previewFileInNewTab(Uint8List.fromList(file.bytes), file.mimeType, file.filename);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذّر فتح الملف: ${e.toString().replaceFirst('Exception: ', '')}')),
+      );
+    } finally {
+      if (mounted) setState(() => _loadingFileId = null);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final section = widget.section;
     final total = (section['totalIndicators'] ?? 0) as int;
     final covered = (section['coveredIndicators'] ?? 0) as int;
     final indicators = List<Map<String, dynamic>>.from(
@@ -203,9 +231,24 @@ class _CriterionCard extends StatelessWidget {
             ),
             title: Text(indicator['name'] ?? '', style: const TextStyle(fontSize: 13)),
             subtitle: hasEvidence
-                ? Text(
-                    evidenceList.map((e) => e['title']).join('، '),
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: evidenceList.map((e) {
+                        final fileId = e['fileId'] as String?;
+                        final isLoading = _loadingFileId == fileId;
+
+                        return ActionChip(
+                          avatar: isLoading
+                              ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2))
+                              : Icon(fileId != null ? Icons.visibility_outlined : Icons.link_outlined, size: 15),
+                          label: Text(e['title'] ?? '', style: const TextStyle(fontSize: 12)),
+                          onPressed: fileId == null || isLoading ? null : () => _openFile(fileId),
+                        );
+                      }).toList(),
+                    ),
                   )
                 : const Text('لا يوجد دليل مرتبط بعد', style: TextStyle(fontSize: 12, color: Color(0xFFCBD5E1))),
           );

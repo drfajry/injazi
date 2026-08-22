@@ -470,6 +470,30 @@ class ApiService {
     return Map<String, dynamic>.from(jsonDecode(response.body));
   }
 
+  Future<({List<int> bytes, String mimeType, String filename})> downloadEvidenceFile(String fileId) async {
+    final token = await getAccessToken();
+
+    final response = await _client.get(
+      Uri.parse('$baseUrl/sources/files/$fileId'),
+      headers: _authorizedHeaders(token),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessage(response.body) ?? 'Failed to load file';
+      throw Exception(message);
+    }
+
+    final contentDisposition = response.headers['content-disposition'] ?? '';
+    final filenameMatch = RegExp('filename="?([^"]+)"?').firstMatch(contentDisposition);
+    final filename = filenameMatch != null ? Uri.decodeComponent(filenameMatch.group(1)!) : 'file';
+
+    return (
+      bytes: response.bodyBytes,
+      mimeType: response.headers['content-type'] ?? 'application/octet-stream',
+      filename: filename,
+    );
+  }
+
   String? _extractErrorMessage(String body) {
     try {
       final decoded = jsonDecode(body);

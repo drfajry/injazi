@@ -22,7 +22,7 @@ portfolioRouter.get('/preview', requireAuth, async (req, res, next) => {
           include: {
             links: {
               where: { evidence: { userId, status: 'APPROVED' } },
-              include: { evidence: true },
+              include: { evidence: { include: { files: true } } },
               orderBy: { matchScore: 'desc' },
             },
           },
@@ -40,6 +40,7 @@ portfolioRouter.get('/preview', requireAuth, async (req, res, next) => {
           title: link.evidence.title,
           type: link.evidence.type,
           matchScore: link.matchScore,
+          fileId: link.evidence.files[0]?.id ?? null,
         })),
       }));
 
