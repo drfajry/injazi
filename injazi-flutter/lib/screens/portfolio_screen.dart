@@ -368,13 +368,15 @@ class _CriterionCardState extends State<_CriterionCard> {
                         final fileId = e['fileId'] as String?;
                         final isLoading = _loadingFileId == fileId;
 
-                        return ActionChip(
-                          avatar: isLoading
-                              ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2))
-                              : Icon(fileId != null ? Icons.visibility_outlined : Icons.link_outlined, size: 15),
-                          label: Text(e['title'] ?? '', style: const TextStyle(fontSize: 12)),
-                          onPressed: fileId == null || isLoading ? null : () => _openFile(fileId),
+                        return GestureDetector(
                           onLongPress: () => _showEvidenceActions(e, indicatorId),
+                          child: ActionChip(
+                            avatar: isLoading
+                                ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2))
+                                : Icon(fileId != null ? Icons.visibility_outlined : Icons.link_outlined, size: 15),
+                            label: Text(e['title'] ?? '', style: const TextStyle(fontSize: 12)),
+                            onPressed: fileId == null || isLoading ? null : () => _openFile(fileId),
+                          ),
                         );
                       }).toList(),
                     ),
