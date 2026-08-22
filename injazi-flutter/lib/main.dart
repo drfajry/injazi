@@ -271,6 +271,7 @@ void main() {
         path: '/dashboard',
         builder: (context, state) {
           return HomeScreen(
+            api: session.api,
             onLogout: () async {
               await session.logout();
               if (!context.mounted) return;
@@ -283,6 +284,7 @@ void main() {
         path: '/sources',
         builder: (context, state) {
           return HomeScreen(
+            api: session.api,
             onLogout: () async {
               await session.logout();
               if (!context.mounted) return;
@@ -295,6 +297,7 @@ void main() {
         path: '/portfolio',
         builder: (context, state) {
           return HomeScreen(
+            api: session.api,
             onLogout: () async {
               await session.logout();
               if (!context.mounted) return;

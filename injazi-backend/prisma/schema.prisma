@@ -188,6 +188,8 @@ storageKey  String
 mimeType    String
 size        Int?
 checksum    String?
+originalName String?
+data        Bytes?
 createdAt   DateTime @default(now())
 evidence    Evidence @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
 @@index([checksum])

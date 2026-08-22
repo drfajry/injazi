@@ -1,15 +1,17 @@
 ﻿import 'package:flutter/material.dart';
 
 import '../models/evidence.dart';
+import '../services/api_service.dart';
 import '../widgets/coverage_card.dart';
 import '../widgets/evidence_tile.dart';
 import 'portfolio_screen.dart';
 import 'sources_screen.dart';
 
 class HomeScreen extends StatefulWidget {
+final ApiService api;
 final VoidCallback? onLogout;
 
-const HomeScreen({super.key, this.onLogout});
+const HomeScreen({super.key, required this.api, this.onLogout});
 
 @override
 State<HomeScreen> createState() => _HomeScreenState();
@@ -20,7 +22,7 @@ int currentIndex = 0;
 
 late final List<Widget> tabs = [
 DashboardTab(onLogout: widget.onLogout),
-const SourcesScreen(),
+SourcesScreen(api: widget.api),
 const PortfolioScreen(),
 ];
 

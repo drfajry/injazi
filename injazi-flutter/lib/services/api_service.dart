@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/evidence.dart';
@@ -332,6 +333,57 @@ class ApiService {
     return Map<String, dynamic>.from(
       jsonDecode(response.body),
     );
+  }
+
+  Future<Map<String, dynamic>> uploadFile({
+    required List<int> bytes,
+    required String filename,
+    String? mimeType,
+    String? title,
+  }) async {
+    final token = await getAccessToken();
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/sources/upload'),
+    );
+
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    if (title != null && title.trim().isNotEmpty) {
+      request.fields['title'] = title.trim();
+    }
+
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'file',
+        bytes,
+        filename: filename,
+        contentType: mimeType != null ? MediaType.parse(mimeType) : null,
+      ),
+    );
+
+    final streamedResponse = await _client.send(request);
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessage(response.body) ?? 'Upload failed';
+      throw Exception(message);
+    }
+
+    return Map<String, dynamic>.from(jsonDecode(response.body));
+  }
+
+  String? _extractErrorMessage(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map && decoded['error'] is String) {
+        return decoded['error'] as String;
+      }
+    } catch (_) {}
+    return null;
   }
 
   Map<String, String> _authorizedHeaders(String? token) {
