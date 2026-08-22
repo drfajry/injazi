@@ -26,7 +26,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   @override
   void initState() {
     super.initState();
-    api = ApiService(baseUrl: 'https://injazi-backend-svxy.onrender.com');
+    api = ApiService(
+      baseUrl: 'https://injazi-backend-svxy.onrender.com',
+    );
   }
 
   @override
@@ -39,8 +41,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   Future<void> verify() async {
     final code = codeController.text.trim();
 
-    if (!RegExp(r'^\\d{6}$').hasMatch(code)) {
-      _message('\\u0623\\u062f\\u062e\\u0644 \\u0631\\u0645\\u0632 \\u0627\\u0644\\u062a\\u062d\\u0642\\u0642 \\u0627\\u0644\\u0645\\u0643\\u0648\\u0646 \\u0645\\u0646 6 \\u0623\\u0631\\u0642\\u0627\\u0645');
+    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
+      _message('أدخل رمز التحقق المكون من 6 أرقام');
       return;
     }
 
@@ -60,7 +62,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       if (!mounted) return;
       _message(e.toString().replaceFirst('Exception: ', ''));
     } finally {
-      if (mounted) setState(() => loading = false);
+      if (mounted) {
+        setState(() => loading = false);
+      }
     }
   }
 
@@ -68,20 +72,28 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     setState(() => resending = true);
 
     try {
-      await api.resendVerification(email: widget.email);
+      await api.resendVerification(
+        email: widget.email,
+      );
+
       if (!mounted) return;
-      _message('\\u062a\\u0645 \\u0625\\u0631\\u0633\\u0627\\u0644 \\u0631\\u0645\\u0632 \\u062c\\u062f\\u064a\\u062f');
+      _message('تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني');
     } catch (e) {
       if (!mounted) return;
       _message(e.toString().replaceFirst('Exception: ', ''));
     } finally {
-      if (mounted) setState(() => resending = false);
+      if (mounted) {
+        setState(() => resending = false);
+      }
     }
   }
 
   void _message(String text) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(text)),
+      SnackBar(
+        content: Text(text),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
@@ -109,7 +121,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                       ),
                       const SizedBox(height: 18),
                       const Text(
-                        '\\u062a\\u062d\\u0642\\u0642 \\u0645\\u0646 \\u0628\\u0631\\u064a\\u062f\\u0643 \\u0627\\u0644\\u0625\\u0644\\u0643\\u062a\\u0631\\u0648\\u0646\\u064a',
+                        'تحقق من بريدك الإلكتروني',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 26,
@@ -118,7 +130,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        '\\u0623\\u0631\\u0633\\u0644\\u0646\\u0627 \\u0631\\u0645\\u0632 \\u062a\\u062d\\u0642\\u0642 \\u0625\\u0644\\u0649 \\u005c',
+                        'أرسلنا رمز تحقق إلى ${widget.email}',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Color(0xFF64748B),
@@ -132,7 +144,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                         textAlign: TextAlign.center,
                         maxLength: 6,
                         decoration: const InputDecoration(
-                          labelText: '\\u0631\\u0645\\u0632 \\u0627\\u0644\\u062a\\u062d\\u0642\\u0642',
+                          labelText: 'رمز التحقق',
                           border: OutlineInputBorder(),
                           counterText: '',
                         ),
@@ -141,14 +153,18 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                       FilledButton(
                         onPressed: loading ? null : verify,
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                          ),
                           child: loading
                               ? const SizedBox(
                                   width: 22,
                                   height: 22,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 )
-                              : const Text('\\u062a\\u062d\\u0642\\u0642 \\u0645\\u0646 \\u0627\\u0644\\u0628\\u0631\\u064a\\u062f'),
+                              : const Text('تحقق من البريد'),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -158,13 +174,15 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
-                            : const Text('\\u0625\\u0639\\u0627\\u062f\\u0629 \\u0625\\u0631\\u0633\\u0627\\u0644 \\u0627\\u0644\\u0631\\u0645\\u0632'),
+                            : const Text('إعادة إرسال الرمز'),
                       ),
                       TextButton(
                         onPressed: () => context.go('/login'),
-                        child: const Text('\\u0627\\u0644\\u0639\\u0648\\u062f\\u0629 \\u0644\\u062a\\u0633\\u062c\\u064a\\u0644 \\u0627\\u0644\\u062f\\u062e\\u0648\\u0644'),
+                        child: const Text('العودة لتسجيل الدخول'),
                       ),
                     ],
                   ),
