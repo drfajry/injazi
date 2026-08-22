@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'core/theme.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/portfolio_screen.dart';
+import 'screens/sources_screen.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/verify_email_screen.dart';
 import 'screens/reset_password_screen.dart';
@@ -101,6 +103,7 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
   final session = AppSession();
+  final dashboardKey = GlobalKey<DashboardTabState>();
 
   final router = GoRouter(
     initialLocation: '/',
@@ -267,44 +270,49 @@ void main() {
           );
         },
       ),
-      GoRoute(
-        path: '/dashboard',
-        builder: (context, state) {
-          return HomeScreen(
-            api: session.api,
-            onLogout: () async {
-              await session.logout();
-              if (!context.mounted) return;
-              context.go('/');
-            },
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return AppShell(
+            navigationShell: navigationShell,
+            dashboardKey: dashboardKey,
           );
         },
-      ),
-      GoRoute(
-        path: '/sources',
-        builder: (context, state) {
-          return HomeScreen(
-            api: session.api,
-            onLogout: () async {
-              await session.logout();
-              if (!context.mounted) return;
-              context.go('/');
-            },
-          );
-        },
-      ),
-      GoRoute(
-        path: '/portfolio',
-        builder: (context, state) {
-          return HomeScreen(
-            api: session.api,
-            onLogout: () async {
-              await session.logout();
-              if (!context.mounted) return;
-              context.go('/');
-            },
-          );
-        },
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/dashboard',
+                builder: (context, state) {
+                  return DashboardTab(
+                    key: dashboardKey,
+                    api: session.api,
+                    onLogout: () async {
+                      await session.logout();
+                      if (!context.mounted) return;
+                      context.go('/');
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/sources',
+                builder: (context, state) => SourcesScreen(api: session.api),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/portfolio',
+                builder: (context, state) => PortfolioScreen(api: session.api),
+              ),
+            ],
+          ),
+        ],
       ),
     ],
   );

@@ -445,7 +445,8 @@ class ApiService {
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Failed to load portfolio');
+      final message = _extractErrorMessage(response.body) ?? 'Failed to load portfolio (${response.statusCode})';
+      throw Exception(message);
     }
 
     final data = Map<String, dynamic>.from(jsonDecode(response.body));

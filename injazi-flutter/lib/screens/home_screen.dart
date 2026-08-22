@@ -1,54 +1,43 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../models/evidence.dart';
 import '../services/api_service.dart';
 import '../widgets/coverage_card.dart';
 import '../widgets/evidence_tile.dart';
-import 'portfolio_screen.dart';
-import 'sources_screen.dart';
 
-class HomeScreen extends StatefulWidget {
-final ApiService api;
-final VoidCallback? onLogout;
+/// The chrome (bottom nav, FAB) shared by the Dashboard, Sources, and
+/// Portfolio sections. Used as the `builder` of a StatefulShellRoute, which
+/// means each section has its own real URL AND keeps its own state (scroll
+/// position, loaded data) when the user switches between them — unlike the
+/// old approach of three separate GoRoutes that each rebuilt everything
+/// from scratch.
+class AppShell extends StatelessWidget {
+final StatefulNavigationShell navigationShell;
+final GlobalKey<DashboardTabState> dashboardKey;
 
-const HomeScreen({super.key, required this.api, this.onLogout});
-
-@override
-State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-int currentIndex = 0;
-final dashboardKey = GlobalKey<DashboardTabState>();
-
-late final List<Widget> tabs = [
-DashboardTab(key: dashboardKey, api: widget.api, onLogout: widget.onLogout),
-SourcesScreen(api: widget.api),
-PortfolioScreen(api: widget.api),
-];
+const AppShell({
+super.key,
+required this.navigationShell,
+required this.dashboardKey,
+});
 
 @override
 Widget build(BuildContext context) {
 return Directionality(
 textDirection: TextDirection.rtl,
 child: Scaffold(
-body: SafeArea(
-child: IndexedStack(
-index: currentIndex,
-children: tabs,
-),
-),
+body: SafeArea(child: navigationShell),
 bottomNavigationBar: NavigationBar(
-selectedIndex: currentIndex,
+selectedIndex: navigationShell.currentIndex,
 onDestinationSelected: (index) {
-setState(() {
-currentIndex = index;
-});
+navigationShell.goBranch(
+index,
+initialLocation: index == navigationShell.currentIndex,
+);
 // Refresh the dashboard's data every time the user navigates back
 // to it, since evidence/coverage may have changed on another tab
-// (e.g. after uploading a file on the Sources tab). IndexedStack
-// keeps DashboardTab alive in memory, so without this it would
-// keep showing whatever it loaded on first open.
+// (e.g. after uploading a file on the Sources tab).
 if (index == 0) {
 dashboardKey.currentState?.reload();
 }
@@ -71,7 +60,7 @@ label: '\u0645\u0644\u0641\u064a',
 ),
 ],
 ),
-floatingActionButton: currentIndex == 0
+floatingActionButton: navigationShell.currentIndex == 0
 ? FloatingActionButton.extended(
 onPressed: () {},
 icon: const Icon(Icons.add),
