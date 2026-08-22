@@ -8,7 +8,7 @@ class SourcesScreen extends StatelessWidget {
   Future<void> _uploadFile(BuildContext context) async {
     await FilePicker.platform.pickFiles(allowMultiple: false);
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('???� ?�?�?????�?� ?�?�?�?�??. ?�?�?�?�?�?� ?�?�?�?�API ?�?�?�?�?�?�.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم اختيار الملف. سيتم ربطه بالـ API قريبًا.')));
     }
   }
 
@@ -16,7 +16,7 @@ class SourcesScreen extends StatelessWidget {
     final picker = ImagePicker();
     await picker.pickImage(source: ImageSource.camera);
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('???� ?�?�???�?�?� ?�?�?�?�?�?�. ?�?�?�???�?�?� ?�?�?�API ?�?�?�?�?�?�.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم التقاط الصورة. سيتم رفعها عبر الـ API قريبًا.')));
     }
   }
 
@@ -25,17 +25,17 @@ class SourcesScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 40),
       children: [
-        const Text('?�?�?�?�?� ?�?�?�?�?�?�', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
+        const Text('مصادر الإنجاز', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
-        const Text('?�?�?�?� ?�?�?�?�?�?� ?�?�?� ?�?�?�?�?�?� ?�?�?�?�?�?�?? ???�?�?� ?�?� ?�?�?�?�?�?� ?�???�?�?�?� ?�?�?�.', style: TextStyle(color: Color(0xFF64748B))),
+        const Text('اربط مصادر إنجازاتك حتى نتمكن من اكتشاف الأدلة المهنية تلقائيًا وبناء ملفك.', style: TextStyle(color: Color(0xFF64748B))),
         const SizedBox(height: 22),
-        _SourceCard(icon: Icons.school_outlined, title: '?�?�?�?�????', subtitle: '?�?�???�?�?? ?�?�?�?�?�?� ?�?�???�?�???�???� ???�?�?�?�???�?�', button: '?�?�?� ?�?�?�?�????', onTap: () {}),
+        _SourceCard(icon: Icons.school_outlined, title: 'منصتي', subtitle: 'اربط حسابك في منصة مدرستي لاستيراد الإنجازات', button: 'ربط منصتي', onTap: () {}),
         const SizedBox(height: 12),
-        _SourceCard(icon: Icons.cloud_outlined, title: 'Google Drive', subtitle: '?�?�?�?�?� ?�?� ?�?�???�???� ?�?�???�?�???�???�', button: '?�?�?� Google', onTap: () {}),
+        _SourceCard(icon: Icons.cloud_outlined, title: 'Google Drive', subtitle: 'استورد الملفات من مساحة Google Drive الخاصة بك', button: 'ربط Google', onTap: () {}),
         const SizedBox(height: 12),
-        _SourceCard(icon: Icons.upload_file_outlined, title: '?�???� ???�?�??', subtitle: '?�?�?�?�?�?� ?�?�?�?�?� ?�?�?? ?�?� ?�?�?�?�', button: '?�?�?????�?� ?�?�??', onTap: () => _uploadFile(context)),
+        _SourceCard(icon: Icons.upload_file_outlined, title: 'رفع ملف', subtitle: 'ارفع مستنداتك مباشرة من جهازك', button: 'اختيار ملف', onTap: () => _uploadFile(context)),
         const SizedBox(height: 12),
-        _SourceCard(icon: Icons.camera_alt_outlined, title: '???�?�???� ?�?�?�?�?�', subtitle: '?�?�???�?�?� ?�?�?�?�?� ?�?�???�?�?�?�?� ?�?�?�?�?�?? ?�?�?�?�?�?�?�?�??', button: '?�?�???�?�?�', onTap: () => _capture(context)),
+        _SourceCard(icon: Icons.camera_alt_outlined, title: 'التقاط صورة', subtitle: 'صوّر شهادة أو مستندًا مباشرة بالكاميرا', button: 'التقاط', onTap: () => _capture(context)),
       ],
     );
   }
@@ -67,5 +67,3 @@ class _SourceCard extends StatelessWidget {
     ),
   );
 }
-
-

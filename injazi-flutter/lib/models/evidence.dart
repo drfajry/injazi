@@ -20,14 +20,12 @@ class Evidence {
   factory Evidence.fromJson(Map<String, dynamic> json) {
     return Evidence(
       id: '${json['id'] ?? ''}',
-      title: '${json['title'] ?? '?�?�???� ?�?�?� ?�?�?�?�?�'}',
-      type: '${json['type'] ?? '?????� ?�?�?�??'}',
-      source: '${json['source'] ?? json['sourceType'] ?? '???�?�??'}',
+      title: '${json['title'] ?? 'دليل بدون عنوان'}',
+      type: '${json['type'] ?? 'نوع غير محدد'}',
+      source: '${json['source'] ?? json['sourceType'] ?? 'مصدر غير معروف'}',
       confidence: ((json['confidence'] ?? 0) as num).toDouble(),
       status: '${json['status'] ?? 'DISCOVERED'}',
       date: json['date']?.toString(),
     );
   }
 }
-
-
