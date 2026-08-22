@@ -19,6 +19,7 @@ class AppSession extends ChangeNotifier {
   bool ready = false;
   bool authenticated = false;
   bool hasProfile = false;
+  bool needsProfileSetup = false;
 
   AppSession() {
     initialize();
@@ -68,6 +69,7 @@ class AppSession extends ChangeNotifier {
   Future<void> markAuthenticatedAfterEmailVerification() async {
     authenticated = await api.isAuthenticated();
     hasProfile = false;
+    needsProfileSetup = true;
     notifyListeners();
   }
   Future<void> refreshProfile() async {
@@ -83,6 +85,7 @@ class AppSession extends ChangeNotifier {
     await api.logout();
     authenticated = false;
     hasProfile = false;
+    needsProfileSetup = false;
     notifyListeners();
   }
 
@@ -130,6 +133,19 @@ void main() {
 
       if (!session.authenticated) {
         return '/';
+      }
+
+      if (session.needsProfileSetup) {
+        if (location == '/profile/setup') {
+          return null;
+        }
+
+        if (protectedRoutes.contains(location) ||
+            location == '/dashboard' ||
+            location == '/sources' ||
+            location == '/portfolio') {
+          return '/profile/setup';
+        }
       }
 
       if (location == '/profile/setup') {
@@ -231,6 +247,7 @@ void main() {
           return ProfileSetupScreen(
             onCompleted: () async {
               await session.refreshProfile();
+              session.needsProfileSetup = false;
 
               if (!context.mounted) return;
 
@@ -295,6 +312,7 @@ class InjaziApp extends StatelessWidget {
     );
   }
 }
+
 
 
 
