@@ -419,6 +419,23 @@ class ApiService {
     return Map<String, dynamic>.from(jsonDecode(response.body));
   }
 
+  Future<String> getGoogleAuthUrl() async {
+    final token = await getAccessToken();
+
+    final response = await _client.get(
+      Uri.parse('$baseUrl/sources/google/auth-url'),
+      headers: _authorizedHeaders(token),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessage(response.body) ?? 'Failed to start Google connection';
+      throw Exception(message);
+    }
+
+    final data = Map<String, dynamic>.from(jsonDecode(response.body));
+    return data['url'] as String;
+  }
+
   String? _extractErrorMessage(String body) {
     try {
       final decoded = jsonDecode(body);

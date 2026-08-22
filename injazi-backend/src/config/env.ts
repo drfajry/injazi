@@ -10,6 +10,10 @@ const schema = z.object({
   RESEND_API_KEY: z.string().min(1),
   RESEND_FROM: z.string().min(1),
   APP_URL: z.string().url(),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_REDIRECT_URI: z.string().url().optional(),
+  BACKEND_URL: z.string().url().optional(),
 });
 
 export const env = schema.parse(process.env);

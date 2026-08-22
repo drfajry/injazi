@@ -6,6 +6,16 @@ import { prisma } from '../../db/prisma.js';
 import { requireAuth, getAuthenticatedUserId } from '../auth/middleware.js';
 import { extractText } from './text-extraction.js';
 import { ingestUrl, UrlIngestionError } from './url-ingestion.js';
+import {
+  isGoogleDriveConfigured,
+  buildAuthUrl,
+  verifyState,
+  exchangeCodeForTokens,
+  getGoogleAccountEmail,
+  listDriveFiles,
+  type GoogleTokens,
+} from './google-oauth.js';
+import { env } from '../../config/env.js';
 
 export const sourcesRouter = Router();
 
@@ -210,20 +220,79 @@ sourcesRouter.get('/', requireAuth, async (req, res, next) => {
   }
 });
 
-sourcesRouter.post('/google/connect', requireAuth, async (req, res, next) => {
+sourcesRouter.get('/google/auth-url', requireAuth, async (req, res, next) => {
   try {
     const userId = getAuthenticatedUserId(req);
-    const body = z.object({ externalAccountId: z.string().min(1).optional() }).parse(req.body);
-    const source = await prisma.connectedSource.create({
-      data: {
-        userId,
-        type: SourceType.GOOGLE_DRIVE,
-        status: SourceStatus.PENDING,
-        externalAccountId: body.externalAccountId,
-      },
+
+    if (!isGoogleDriveConfigured()) {
+      return res.status(503).json({ error: 'Google Drive غير مفعّل على الخادم بعد.' });
+    }
+
+    const url = buildAuthUrl(userId);
+    res.json({ url });
+  } catch (error) {
+    next(error);
+  }
+});
+
+sourcesRouter.get('/google/callback', async (req, res, next) => {
+  try {
+    const query = z.object({
+      code: z.string().min(1).optional(),
+      state: z.string().min(1),
+      error: z.string().optional(),
+    }).parse(req.query);
+
+    const appRedirect = (status: 'connected' | 'error', message?: string) => {
+      const url = new URL(env.APP_URL);
+      url.hash = `/sources?google=${status}${message ? `&message=${encodeURIComponent(message)}` : ''}`;
+      res.redirect(url.toString());
+    };
+
+    if (query.error || !query.code) {
+      return appRedirect('error', 'تم إلغاء الربط مع Google.');
+    }
+
+    let userId: string;
+    try {
+      userId = verifyState(query.state);
+    } catch {
+      return appRedirect('error', 'انتهت صلاحية طلب الربط. حاول مرة أخرى.');
+    }
+
+    const tokens = await exchangeCodeForTokens(query.code);
+    const email = await getGoogleAccountEmail(tokens);
+
+    const existing = await prisma.connectedSource.findFirst({
+      where: { userId, type: SourceType.GOOGLE_DRIVE },
     });
-    res.status(201).json({ data: source, next: 'Implement Google OAuth callback and token vault.' });
-  } catch (error) { next(error); }
+
+    if (existing) {
+      await prisma.connectedSource.update({
+        where: { id: existing.id },
+        data: {
+          status: SourceStatus.CONNECTED,
+          externalAccountId: email,
+          metadata: tokens as unknown as object,
+          lastSyncAt: null,
+        },
+      });
+    } else {
+      await prisma.connectedSource.create({
+        data: {
+          userId,
+          type: SourceType.GOOGLE_DRIVE,
+          status: SourceStatus.CONNECTED,
+          externalAccountId: email,
+          metadata: tokens as unknown as object,
+        },
+      });
+    }
+
+    return appRedirect('connected');
+  } catch (error) {
+    next(error);
+  }
 });
 
 sourcesRouter.post('/madrasati/connect', requireAuth, async (req, res, next) => {
@@ -244,6 +313,37 @@ sourcesRouter.post('/:id/sync', requireAuth, async (req, res, next) => {
 
     if (!source || source.userId !== userId) {
       return res.status(404).json({ error: 'Source not found' });
+    }
+
+    if (source.type === SourceType.GOOGLE_DRIVE) {
+      const tokens = source.metadata as unknown as GoogleTokens | null;
+
+      if (!tokens?.access_token) {
+        return res.status(400).json({ error: 'حساب Google Drive غير مربوط بشكل صحيح. أعد الربط.' });
+      }
+
+      const files = await listDriveFiles(tokens);
+
+      for (const file of files) {
+        await prisma.sourceItem.upsert({
+          where: { sourceId_externalId: { sourceId: source.id, externalId: file.id } },
+          update: { title: file.name, itemType: file.mimeType, url: file.webViewLink },
+          create: {
+            sourceId: source.id,
+            externalId: file.id,
+            itemType: file.mimeType,
+            title: file.name,
+            url: file.webViewLink,
+          },
+        });
+      }
+
+      const updated = await prisma.connectedSource.update({
+        where: { id },
+        data: { lastSyncAt: new Date(), status: SourceStatus.CONNECTED },
+      });
+
+      return res.status(200).json({ data: updated, filesFound: files.length });
     }
 
     const updated = await prisma.connectedSource.update({ where: { id }, data: { lastSyncAt: new Date(), status: SourceStatus.CONNECTED } });
