@@ -105,9 +105,9 @@ sourcesRouter.get('/files/:fileId', requireAuth, async (req, res, next) => {
   }
 });
 
-sourcesRouter.get('/', async (req, res, next) => {
+sourcesRouter.get('/', requireAuth, async (req, res, next) => {
   try {
-    const userId = z.string().cuid().parse(String(req.query.userId ?? ''));
+    const userId = getAuthenticatedUserId(req);
     const sources = await prisma.connectedSource.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } });
     res.json({ data: sources });
   } catch (error) {
@@ -115,12 +115,13 @@ sourcesRouter.get('/', async (req, res, next) => {
   }
 });
 
-sourcesRouter.post('/google/connect', async (req, res, next) => {
+sourcesRouter.post('/google/connect', requireAuth, async (req, res, next) => {
   try {
-    const body = z.object({ userId: z.string().cuid(), externalAccountId: z.string().min(1).optional() }).parse(req.body);
+    const userId = getAuthenticatedUserId(req);
+    const body = z.object({ externalAccountId: z.string().min(1).optional() }).parse(req.body);
     const source = await prisma.connectedSource.create({
       data: {
-        userId: body.userId,
+        userId,
         type: SourceType.GOOGLE_DRIVE,
         status: SourceStatus.PENDING,
         externalAccountId: body.externalAccountId,
@@ -130,20 +131,27 @@ sourcesRouter.post('/google/connect', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-sourcesRouter.post('/madrasati/connect', async (req, res, next) => {
+sourcesRouter.post('/madrasati/connect', requireAuth, async (req, res, next) => {
   try {
-    const body = z.object({ userId: z.string().cuid() }).parse(req.body);
+    const userId = getAuthenticatedUserId(req);
     const source = await prisma.connectedSource.create({
-      data: { userId: body.userId, type: SourceType.MADRASATI, status: SourceStatus.PENDING },
+      data: { userId, type: SourceType.MADRASATI, status: SourceStatus.PENDING },
     });
     res.status(201).json({ data: source, next: 'Attach the approved Madrasati connector flow.' });
   } catch (error) { next(error); }
 });
 
-sourcesRouter.post('/:id/sync', async (req, res, next) => {
+sourcesRouter.post('/:id/sync', requireAuth, async (req, res, next) => {
   try {
+    const userId = getAuthenticatedUserId(req);
     const id = z.string().cuid().parse(req.params.id);
-    const source = await prisma.connectedSource.update({ where: { id }, data: { lastSyncAt: new Date(), status: SourceStatus.CONNECTED } });
-    res.status(202).json({ data: source, queued: true });
+    const source = await prisma.connectedSource.findUnique({ where: { id } });
+
+    if (!source || source.userId !== userId) {
+      return res.status(404).json({ error: 'Source not found' });
+    }
+
+    const updated = await prisma.connectedSource.update({ where: { id }, data: { lastSyncAt: new Date(), status: SourceStatus.CONNECTED } });
+    res.status(202).json({ data: updated, queued: true });
   } catch (error) { next(error); }
 });

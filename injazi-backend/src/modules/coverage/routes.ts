@@ -1,12 +1,14 @@
 import { Router } from 'express';
-import { z } from 'zod';
 import { prisma } from '../../db/prisma.js';
+import { requireAuth, getAuthenticatedUserId } from '../auth/middleware.js';
 
 export const coverageRouter = Router();
 
-coverageRouter.get('/', async (req, res, next) => {
+coverageRouter.get('/', requireAuth, async (req, res, next) => {
   try {
-    const userId = z.string().cuid().parse(String(req.query.userId ?? ''));
+    const userId = getAuthenticatedUserId(req);
+    const totalIndicators = await prisma.indicator.count();
+
     const links = await prisma.evidenceIndicatorLink.findMany({
       where: {
         evidence: { userId },
@@ -33,11 +35,22 @@ coverageRouter.get('/', async (req, res, next) => {
       coverage: Math.min(1, Math.max(0, item.scores.reduce((a, b) => Math.max(a, b), 0))),
     }));
 
-    const overall = indicators.length
-      ? indicators.reduce((sum, item) => sum + item.coverage, 0) / indicators.length
+    const complete = indicators.filter((item) => item.coverage >= 0.7).length;
+    const needsSupport = indicators.filter((item) => item.coverage > 0 && item.coverage < 0.7).length;
+    const missing = Math.max(0, totalIndicators - complete - needsSupport);
+
+    const overall = totalIndicators
+      ? indicators.reduce((sum, item) => sum + Math.min(1, item.coverage), 0) / totalIndicators
       : 0;
 
-    res.json({ overallCoverage: Number(overall.toFixed(3)), indicators });
+    res.json({
+      overallCoverage: Number(overall.toFixed(3)),
+      totalIndicators,
+      complete,
+      needsSupport,
+      missing,
+      indicators,
+    });
   } catch (error) {
     next(error);
   }

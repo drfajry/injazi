@@ -74,7 +74,7 @@ class _ConfidenceBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        '%',
+        '${(value * 100).round()}%',
         style: const TextStyle(
           fontWeight: FontWeight.w700,
           fontSize: 12,

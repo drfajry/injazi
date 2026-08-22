@@ -307,7 +307,7 @@ class ApiService {
     final data = jsonDecode(response.body);
     final items = data is List
         ? data
-        : (data['items'] as List? ?? []);
+        : (data['data'] as List? ?? data['items'] as List? ?? []);
 
     return items
         .map(

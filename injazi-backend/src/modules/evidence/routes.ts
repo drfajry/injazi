@@ -3,15 +3,13 @@ import { EvidenceStatus, EvidenceType } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../../db/prisma.js';
 import { createEvidenceCandidate } from './evidence-engine.js';
+import { requireAuth, getAuthenticatedUserId } from '../auth/middleware.js';
 
 export const evidenceRouter = Router();
 
-// Development-only auth placeholder: replace with real session/JWT middleware.
-const userIdQuery = z.string().cuid();
-
-evidenceRouter.get('/', async (req, res, next) => {
+evidenceRouter.get('/', requireAuth, async (req, res, next) => {
   try {
-    const userId = userIdQuery.parse(String(req.query.userId ?? ''));
+    const userId = getAuthenticatedUserId(req);
     const status = req.query.status ? z.nativeEnum(EvidenceStatus).parse(String(req.query.status)) : undefined;
     const evidence = await prisma.evidence.findMany({
       where: { userId, ...(status ? { status } : {}) },
@@ -24,10 +22,10 @@ evidenceRouter.get('/', async (req, res, next) => {
   }
 });
 
-evidenceRouter.post('/manual', async (req, res, next) => {
+evidenceRouter.post('/manual', requireAuth, async (req, res, next) => {
   try {
+    const userId = getAuthenticatedUserId(req);
     const body = z.object({
-      userId: z.string().cuid(),
       academicYearId: z.string().cuid().optional(),
       title: z.string().min(2),
       description: z.string().optional(),
@@ -35,34 +33,48 @@ evidenceRouter.post('/manual', async (req, res, next) => {
       confidence: z.number().min(0).max(1).default(0.95),
     }).parse(req.body);
 
-    const evidence = await createEvidenceCandidate(body);
+    const evidence = await createEvidenceCandidate({ ...body, userId });
     res.status(201).json({ data: evidence });
   } catch (error) {
     next(error);
   }
 });
 
-evidenceRouter.post('/:id/approve', async (req, res, next) => {
+evidenceRouter.post('/:id/approve', requireAuth, async (req, res, next) => {
   try {
+    const userId = getAuthenticatedUserId(req);
     const id = z.string().cuid().parse(req.params.id);
-    const evidence = await prisma.evidence.update({
+    const evidence = await prisma.evidence.findUnique({ where: { id } });
+
+    if (!evidence || evidence.userId !== userId) {
+      return res.status(404).json({ error: 'Evidence not found' });
+    }
+
+    const updated = await prisma.evidence.update({
       where: { id },
       data: { status: EvidenceStatus.APPROVED },
     });
-    res.json({ data: evidence });
+    res.json({ data: updated });
   } catch (error) {
     next(error);
   }
 });
 
-evidenceRouter.post('/:id/reject', async (req, res, next) => {
+evidenceRouter.post('/:id/reject', requireAuth, async (req, res, next) => {
   try {
+    const userId = getAuthenticatedUserId(req);
     const id = z.string().cuid().parse(req.params.id);
-    const evidence = await prisma.evidence.update({
+    const evidence = await prisma.evidence.findUnique({ where: { id } });
+
+    if (!evidence || evidence.userId !== userId) {
+      return res.status(404).json({ error: 'Evidence not found' });
+    }
+
+    const updated = await prisma.evidence.update({
       where: { id },
       data: { status: EvidenceStatus.REJECTED },
     });
-    res.json({ data: evidence });
+    res.json({ data: updated });
   } catch (error) {
     next(error);
   }

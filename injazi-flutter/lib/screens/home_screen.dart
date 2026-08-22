@@ -21,7 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
 int currentIndex = 0;
 
 late final List<Widget> tabs = [
-DashboardTab(onLogout: widget.onLogout),
+DashboardTab(api: widget.api, onLogout: widget.onLogout),
 SourcesScreen(api: widget.api),
 const PortfolioScreen(),
 ];
@@ -76,41 +76,71 @@ label: const Text(
 }
 }
 
-class DashboardTab extends StatelessWidget {
+class DashboardTab extends StatefulWidget {
+final ApiService api;
 final VoidCallback? onLogout;
 
-const DashboardTab({super.key, this.onLogout});
+const DashboardTab({super.key, required this.api, this.onLogout});
 
-static const List<Evidence> sampleEvidence = [
-Evidence(
-id: '1',
-title: '\u0646\u0634\u0627\u0637 \u0627\u0644\u062a\u0639\u0644\u0645 \u0627\u0644\u062a\u0639\u0627\u0648\u0646\u064a',
-type: '\u0646\u0634\u0627\u0637',
-source: '\u0645\u062f\u0631\u0633\u062a\u064a',
-confidence: 0.96,
-status: 'APPROVED',
-),
-Evidence(
-id: '2',
-title: '\u0627\u062e\u062a\u0628\u0627\u0631 \u0642\u0635\u064a\u0631 \u0641\u064a \u0627\u0644\u0623\u0645\u0646 \u0627\u0644\u0633\u064a\u0628\u0631\u0627\u0646\u064a',
-type: '\u0627\u062e\u062a\u0628\u0627\u0631',
-source: '\u0645\u062f\u0631\u0633\u062a\u064a',
-confidence: 0.92,
-status: 'APPROVED',
-),
-Evidence(
-id: '3',
-title: '\u0634\u0647\u0627\u062f\u0629 \u062f\u0648\u0631\u0629 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064a',
-type: '\u0634\u0647\u0627\u062f\u0629',
-source: 'Google Drive',
-confidence: 0.99,
-status: 'SUGGESTED',
-),
-];
+@override
+State<DashboardTab> createState() => _DashboardTabState();
+}
+
+class _DashboardTabState extends State<DashboardTab> {
+bool _loading = true;
+String? _error;
+double _coverageValue = 0;
+int _complete = 0;
+int _needsSupport = 0;
+int _missing = 0;
+List<Evidence> _evidence = const [];
+
+@override
+void initState() {
+super.initState();
+_load();
+}
+
+Future<void> _load() async {
+setState(() {
+_loading = true;
+_error = null;
+});
+
+try {
+final results = await Future.wait([
+widget.api.getCoverage(),
+widget.api.getEvidence(),
+]);
+
+final coverage = results[0] as Map<String, dynamic>;
+final evidence = results[1] as List<Evidence>;
+
+if (!mounted) return;
+
+setState(() {
+_coverageValue = ((coverage['overallCoverage'] ?? 0) as num).toDouble();
+_complete = ((coverage['complete'] ?? 0) as num).toInt();
+_needsSupport = ((coverage['needsSupport'] ?? 0) as num).toInt();
+_missing = ((coverage['missing'] ?? 0) as num).toInt();
+_evidence = evidence;
+_loading = false;
+});
+} catch (e) {
+if (!mounted) return;
+setState(() {
+_error = e.toString().replaceFirst('Exception: ', '');
+_loading = false;
+});
+}
+}
 
 @override
 Widget build(BuildContext context) {
-return SingleChildScrollView(
+return RefreshIndicator(
+onRefresh: _load,
+child: SingleChildScrollView(
+physics: const AlwaysScrollableScrollPhysics(),
 padding: const EdgeInsets.fromLTRB(18, 12, 18, 100),
 child: Column(
 crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,7 +152,7 @@ child: Column(
 crossAxisAlignment: CrossAxisAlignment.start,
 children: [
 Text(
-'\u0623\u0647\u0644\u0627\u064b \u0628\u0643',
+'أهلاً بك',
 style: TextStyle(
 color: Color(0xFF64748B),
 fontSize: 15,
@@ -130,7 +160,7 @@ fontSize: 15,
 ),
 SizedBox(height: 4),
 Text(
-'\u062f. \u0641\u064a\u0635\u0644',
+'د. فيصل',
 style: TextStyle(
 fontSize: 28,
 fontWeight: FontWeight.w800,
@@ -139,11 +169,11 @@ fontWeight: FontWeight.w800,
 ],
 ),
 ),
-if (onLogout != null)
+if (widget.onLogout != null)
 IconButton(
-onPressed: () => _confirmLogout(context, onLogout!),
+onPressed: () => _confirmLogout(context, widget.onLogout!),
 icon: const Icon(Icons.logout_outlined),
-tooltip: '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0631\u0648\u062c',
+tooltip: 'تسجيل الخروج',
 color: const Color(0xFF64748B),
 ),
 const SizedBox(width: 4),
@@ -162,18 +192,40 @@ color: Color(0xFF0F766E),
 ],
 ),
 const SizedBox(height: 18),
-const CoverageCard(
-value: 0.86,
-complete: 39,
-needsSupport: 8,
-missing: 6,
+if (_loading)
+const Padding(
+padding: EdgeInsets.symmetric(vertical: 40),
+child: Center(child: CircularProgressIndicator()),
+)
+else if (_error != null)
+Card(
+color: const Color(0xFFFEF2F2),
+child: Padding(
+padding: const EdgeInsets.all(16),
+child: Row(
+children: [
+const Icon(Icons.error_outline, color: Color(0xFFDC2626)),
+const SizedBox(width: 10),
+Expanded(child: Text('تعذّر تحميل البيانات: $_error', style: const TextStyle(color: Color(0xFF991B1B)))),
+TextButton(onPressed: _load, child: const Text('إعادة المحاولة')),
+],
+),
+),
+)
+else ...[
+CoverageCard(
+value: _coverageValue,
+complete: _complete,
+needsSupport: _needsSupport,
+missing: _missing,
 ),
 const SizedBox(height: 22),
-const SectionTitle(
-title: '\u0644\u0627 \u062a\u062d\u062a\u0627\u062c \u0625\u0644\u0649 \u0641\u0639\u0644 \u0634\u064a\u0621 \u0627\u0644\u0622\u0646',
-action: '\u0639\u0631\u0636 \u0627\u0644\u0645\u0644\u0641',
+SectionTitle(
+title: 'أدلتك (${_evidence.length})',
+action: 'عرض الكل',
 ),
 const SizedBox(height: 10),
+if (_evidence.isEmpty)
 Card(
 child: Padding(
 padding: const EdgeInsets.all(18),
@@ -183,43 +235,32 @@ Container(
 width: 44,
 height: 44,
 decoration: BoxDecoration(
-color: const Color(0xFFDCFCE7),
+color: const Color(0xFFF1F5F9),
 borderRadius: BorderRadius.circular(14),
 ),
-child: const Icon(
-Icons.check_circle_outline,
-color: Color(0xFF15803D),
-),
+child: const Icon(Icons.inbox_outlined, color: Color(0xFF64748B)),
 ),
 const SizedBox(width: 14),
 const Expanded(
 child: Text(
-'\u062a\u0645\u062a \u0625\u0636\u0627\u0641\u0629 9 \u0623\u062f\u0644\u0629 \u062c\u062f\u064a\u062f\u0629 \u0645\u0646 \u0645\u0635\u0627\u062f\u0631\u0643 \u062e\u0644\u0627\u0644 \u0647\u0630\u0627 \u0627\u0644\u0623\u0633\u0628\u0648\u0639.',
-style: TextStyle(
-height: 1.5,
-fontWeight: FontWeight.w600,
-),
+'لا توجد أدلة بعد. ابدأ برفع ملف من تبويب المصادر.',
+style: TextStyle(height: 1.5, fontWeight: FontWeight.w600),
 ),
 ),
 ],
 ),
 ),
-),
-const SizedBox(height: 22),
-const SectionTitle(
-title: '\u0648\u062c\u062f\u0646\u0627 \u0623\u062f\u0644\u0629 \u062c\u062f\u064a\u062f\u0629',
-action: '\u0639\u0631\u0636 \u0627\u0644\u0643\u0644',
-),
-const SizedBox(height: 10),
-...sampleEvidence.map(
+)
+else
+...(_evidence.map(
 (evidence) => Padding(
 padding: const EdgeInsets.only(bottom: 8),
-child: EvidenceTile(
-evidence: evidence,
+child: EvidenceTile(evidence: evidence),
 ),
-),
-),
+)),
 ],
+],
+),
 ),
 );
 }
