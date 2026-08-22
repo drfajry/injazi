@@ -16,7 +16,7 @@ class SourcesScreen extends StatefulWidget {
 class _SourcesScreenState extends State<SourcesScreen> {
   bool _uploading = false;
 
-  Future<void> _uploadFile(BuildContext context) async {
+  Future<void> _uploadFile() async {
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: false,
       withData: true,
@@ -28,14 +28,13 @@ class _SourcesScreenState extends State<SourcesScreen> {
     if (picked == null || bytes == null) return;
 
     await _sendUpload(
-      context: context,
       bytes: bytes,
       filename: picked.name,
       mimeType: _guessMimeType(picked.extension),
     );
   }
 
-  Future<void> _capture(BuildContext context) async {
+  Future<void> _capture() async {
     final picker = ImagePicker();
     final photo = await picker.pickImage(source: ImageSource.camera);
 
@@ -44,7 +43,6 @@ class _SourcesScreenState extends State<SourcesScreen> {
     final bytes = await photo.readAsBytes();
 
     await _sendUpload(
-      context: context,
       bytes: bytes,
       filename: photo.name,
       mimeType: 'image/jpeg',
@@ -52,7 +50,6 @@ class _SourcesScreenState extends State<SourcesScreen> {
   }
 
   Future<void> _sendUpload({
-    required BuildContext context,
     required List<int> bytes,
     required String filename,
     String? mimeType,
@@ -67,17 +64,15 @@ class _SourcesScreenState extends State<SourcesScreen> {
         title: filename,
       );
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم رفع الملف وإضافته كدليل جديد بنجاح.')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم رفع الملف وإضافته كدليل جديد بنجاح.')),
+      );
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تعذّر رفع الملف: ${e.toString().replaceFirst('Exception: ', '')}')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذّر رفع الملف: ${e.toString().replaceFirst('Exception: ', '')}')),
+      );
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
@@ -116,9 +111,9 @@ class _SourcesScreenState extends State<SourcesScreen> {
             const SizedBox(height: 12),
             _SourceCard(icon: Icons.cloud_outlined, title: 'Google Drive', subtitle: 'استورد الملفات من مساحة Google Drive الخاصة بك', button: 'ربط Google', onTap: () {}),
             const SizedBox(height: 12),
-            _SourceCard(icon: Icons.upload_file_outlined, title: 'رفع ملف', subtitle: 'ارفع مستنداتك مباشرة من جهازك', button: 'اختيار ملف', onTap: _uploading ? null : () => _uploadFile(context)),
+            _SourceCard(icon: Icons.upload_file_outlined, title: 'رفع ملف', subtitle: 'ارفع مستنداتك مباشرة من جهازك', button: 'اختيار ملف', onTap: _uploading ? null : _uploadFile),
             const SizedBox(height: 12),
-            _SourceCard(icon: Icons.camera_alt_outlined, title: 'التقاط صورة', subtitle: 'صوّر شهادة أو مستندًا مباشرة بالكاميرا', button: 'التقاط', onTap: _uploading ? null : () => _capture(context)),
+            _SourceCard(icon: Icons.camera_alt_outlined, title: 'التقاط صورة', subtitle: 'صوّر شهادة أو مستندًا مباشرة بالكاميرا', button: 'التقاط', onTap: _uploading ? null : _capture),
           ],
         ),
         if (_uploading)
