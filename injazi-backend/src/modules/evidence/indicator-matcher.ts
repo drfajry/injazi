@@ -66,12 +66,22 @@ function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
  */
 export async function matchEvidenceToIndicators(evidenceId: string): Promise<number> {
   const evidence = await prisma.evidence.findUnique({ where: { id: evidenceId } });
-  if (!evidence) return 0;
+  if (!evidence) {
+    console.warn(`[indicator-matcher] Evidence ${evidenceId} not found, skipping.`);
+    return 0;
+  }
 
   const evidenceText = [evidence.title, evidence.description].filter(Boolean).join(' ');
   const evidenceTokens = tokenize(evidenceText);
 
-  if (evidenceTokens.size === 0) return 0;
+  if (evidenceTokens.size === 0) {
+    console.warn(
+      `[indicator-matcher] Evidence "${evidence.title}" (${evidenceId}) has no usable text ` +
+      `(description is ${evidence.description ? 'present but produced 0 tokens' : 'empty/null'}). ` +
+      `No indicators can be matched without text content.`,
+    );
+    return 0;
+  }
 
   const indicators = await prisma.indicator.findMany();
 
@@ -80,18 +90,24 @@ export async function matchEvidenceToIndicators(evidenceId: string): Promise<num
       const indicatorText = [indicator.name, indicator.description].filter(Boolean).join(' ');
       const indicatorTokens = tokenize(indicatorText);
       const score = jaccardSimilarity(evidenceTokens, indicatorTokens);
-      return { indicatorId: indicator.id, score };
+      return { indicatorId: indicator.id, indicatorCode: indicator.code, score };
     })
-    .filter((match) => match.score >= MIN_MATCH_SCORE)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, MAX_LINKS_PER_EVIDENCE);
+    .sort((a, b) => b.score - a.score);
+
+  const topMatches = scored.slice(0, MAX_LINKS_PER_EVIDENCE).filter((match) => match.score >= MIN_MATCH_SCORE);
+
+  console.log(
+    `[indicator-matcher] Evidence "${evidence.title}" (${evidenceTokens.size} tokens): ` +
+    `best score ${scored[0]?.score.toFixed(3) ?? 'n/a'} (${scored[0]?.indicatorCode ?? 'none'}), ` +
+    `${topMatches.length} link(s) created above threshold ${MIN_MATCH_SCORE}.`,
+  );
 
   await prisma.evidenceIndicatorLink.deleteMany({ where: { evidenceId } });
 
-  if (scored.length === 0) return 0;
+  if (topMatches.length === 0) return 0;
 
   await prisma.evidenceIndicatorLink.createMany({
-    data: scored.map((match) => ({
+    data: topMatches.map((match) => ({
       evidenceId,
       indicatorId: match.indicatorId,
       matchScore: Number(match.score.toFixed(3)),
@@ -99,5 +115,5 @@ export async function matchEvidenceToIndicators(evidenceId: string): Promise<num
     })),
   });
 
-  return scored.length;
+  return topMatches.length;
 }
