@@ -158,8 +158,6 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           ),
           const SizedBox(height: 22),
           const Text('المعايير', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 4),
-          const Text('اضغط مطولاً على أي دليل لنقله أو حذفه.', style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
           const SizedBox(height: 10),
           ..._sections.map((section) => _CriterionCard(section: section, api: widget.api, allSections: _sections, onChanged: _load)),
         ],
@@ -201,55 +199,6 @@ class _CriterionCardState extends State<_CriterionCard> {
       );
     } finally {
       if (mounted) setState(() => _loadingFileId = null);
-    }
-  }
-
-  Future<void> _showEvidenceActions(Map<String, dynamic> evidence, String currentIndicatorId) async {
-    final evidenceId = evidence['id'] as String;
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      builder: (context) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.swap_horiz_outlined),
-                title: const Text('نقل إلى مؤشر آخر'),
-                onTap: () => Navigator.pop(context, 'move'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.link_off_outlined),
-                title: const Text('إزالة من هذا المؤشر فقط'),
-                onTap: () => Navigator.pop(context, 'unlink'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete_outline, color: Color(0xFFDC2626)),
-                title: const Text('حذف الدليل نهائيًا', style: TextStyle(color: Color(0xFFDC2626))),
-                onTap: () => Navigator.pop(context, 'delete'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    if (!mounted || action == null) return;
-
-    switch (action) {
-      case 'move':
-        await _moveToAnotherIndicator(evidenceId, currentIndicatorId);
-        break;
-      case 'unlink':
-        await _runAction(() => widget.api.unlinkEvidenceFromIndicator(evidenceId, currentIndicatorId));
-        break;
-      case 'delete':
-        final confirmed = await _confirmDelete();
-        if (confirmed == true) {
-          await _runAction(() => widget.api.deleteEvidence(evidenceId));
-        }
-        break;
     }
   }
 
@@ -361,21 +310,60 @@ class _CriterionCardState extends State<_CriterionCard> {
             subtitle: hasEvidence
                 ? Padding(
                     padding: const EdgeInsets.only(top: 6),
-                    child: Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: evidenceList.map((e) {
                         final fileId = e['fileId'] as String?;
                         final isLoading = _loadingFileId == fileId;
 
-                        return GestureDetector(
-                          onLongPress: () => _showEvidenceActions(e, indicatorId),
-                          child: ActionChip(
-                            avatar: isLoading
-                                ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2))
-                                : Icon(fileId != null ? Icons.visibility_outlined : Icons.link_outlined, size: 15),
-                            label: Text(e['title'] ?? '', style: const TextStyle(fontSize: 12)),
-                            onPressed: fileId == null || isLoading ? null : () => _openFile(fileId),
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Row(
+                            children: [
+                              InkWell(
+                                onTap: fileId == null || isLoading ? null : () => _openFile(fileId),
+                                borderRadius: BorderRadius.circular(20),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4),
+                                  child: isLoading
+                                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                      : Icon(fileId != null ? Icons.visibility_outlined : Icons.link_outlined, size: 16, color: const Color(0xFF0F766E)),
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  e['title'] ?? '',
+                                  style: const TextStyle(fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined, size: 17),
+                                color: const Color(0xFF64748B),
+                                tooltip: 'نقل إلى مؤشر آخر',
+                                visualDensity: VisualDensity.compact,
+                                onPressed: () => _moveToAnotherIndicator(e['id'] as String, indicatorId),
+                              ),
+                              PopupMenuButton<String>(
+                                icon: const Icon(Icons.delete_outline, size: 17, color: Color(0xFFDC2626)),
+                                tooltip: 'حذف',
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem(value: 'unlink', child: Text('إزالة من هذا المؤشر فقط')),
+                                  const PopupMenuItem(value: 'delete', child: Text('حذف الدليل نهائيًا')),
+                                ],
+                                onSelected: (value) async {
+                                  final evidenceId = e['id'] as String;
+                                  if (value == 'unlink') {
+                                    await _runAction(() => widget.api.unlinkEvidenceFromIndicator(evidenceId, indicatorId));
+                                  } else if (value == 'delete') {
+                                    final confirmed = await _confirmDelete();
+                                    if (confirmed == true) {
+                                      await _runAction(() => widget.api.deleteEvidence(evidenceId));
+                                    }
+                                  }
+                                },
+                              ),
+                            ],
                           ),
                         );
                       }).toList(),

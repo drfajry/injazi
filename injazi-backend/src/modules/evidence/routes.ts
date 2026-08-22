@@ -107,7 +107,7 @@ evidenceRouter.delete('/:id/indicators/:indicatorId', requireAuth, async (req, r
   try {
     const userId = getAuthenticatedUserId(req);
     const id = z.string().cuid().parse(req.params.id);
-    const indicatorId = z.string().cuid().parse(req.params.indicatorId);
+    const indicatorId = z.string().min(1).parse(req.params.indicatorId);
 
     const evidence = await prisma.evidence.findUnique({ where: { id } });
     if (!evidence || evidence.userId !== userId) {
@@ -131,7 +131,7 @@ evidenceRouter.post('/:id/indicators', requireAuth, async (req, res, next) => {
   try {
     const userId = getAuthenticatedUserId(req);
     const id = z.string().cuid().parse(req.params.id);
-    const body = z.object({ indicatorId: z.string().cuid() }).parse(req.body);
+    const body = z.object({ indicatorId: z.string().min(1) }).parse(req.body);
 
     const evidence = await prisma.evidence.findUnique({ where: { id } });
     if (!evidence || evidence.userId !== userId) {
