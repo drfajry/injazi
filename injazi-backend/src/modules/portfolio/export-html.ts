@@ -132,7 +132,7 @@ export function buildPublicPortfolioHtml(data: {
       <div class="label">${data.complete} من ${data.totalIndicators} مؤشر مغطى</div>
     </div>
     ${sectionsHtml}
-    <div class="footer">هذا ملخص عام لملف الإنجاز — لا يعرض تفاصيل الأدلة المرفقة.</div>
+    <div class="footer">هذا ملخص عام لملف الإنجاز — لا يعرض تفاصيل الشواهد المرفقة.</div>
   </div>
 </body>
 </html>`;
@@ -231,7 +231,7 @@ export function buildPortfolioExportHtml(data: ExportData): string {
                   `;
                 })
                 .join('')
-            : `<p class="no-evidence">لا يوجد دليل مرتبط بعد</p>`;
+            : `<p class="no-evidence">لا يوجد شاهد مرتبط بعد</p>`;
 
           return `
             <div class="indicator ${covered ? 'covered' : 'missing'}">

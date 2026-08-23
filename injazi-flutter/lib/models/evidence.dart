@@ -20,7 +20,7 @@ class Evidence {
   factory Evidence.fromJson(Map<String, dynamic> json) {
     return Evidence(
       id: '${json['id'] ?? ''}',
-      title: '${json['title'] ?? 'دليل بدون عنوان'}',
+      title: '${json['title'] ?? 'شاهد بدون عنوان'}',
       type: '${json['type'] ?? 'نوع غير محدد'}',
       source: '${json['source'] ?? json['sourceType'] ?? 'مصدر غير معروف'}',
       confidence: ((json['confidence'] ?? 0) as num).toDouble(),

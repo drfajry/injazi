@@ -77,8 +77,8 @@ class _SourcesScreenState extends State<SourcesScreen> {
         SnackBar(
           content: Text(
             textExtracted
-                ? 'تم رفع الملف واستخراج محتواه النصي وإضافته كدليل جديد بنجاح.'
-                : 'تم رفع الملف وإضافته كدليل جديد بنجاح.',
+                ? 'تم رفع الملف واستخراج محتواه النصي وإضافته كشاهد جديد بنجاح.'
+                : 'تم رفع الملف وإضافته كشاهد جديد بنجاح.',
           ),
         ),
       );
@@ -164,7 +164,7 @@ class _SourcesScreenState extends State<SourcesScreen> {
               await widget.api.importDriveFile(sourceId, item['externalId'] as String);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('تم استيراد "${item['title']}" كدليل جديد بنجاح.')),
+                  SnackBar(content: Text('تم استيراد "${item['title']}" كشاهد جديد بنجاح.')),
                 );
               }
             } catch (e) {
@@ -233,7 +233,7 @@ class _SourcesScreenState extends State<SourcesScreen> {
                                         ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                                         : IconButton(
                                             icon: const Icon(Icons.download_outlined),
-                                            tooltip: 'استيراد كدليل',
+                                            tooltip: 'استيراد كشاهد',
                                             onPressed: importingId != null ? null : () => importFile(item),
                                           ),
                                   );
@@ -299,7 +299,7 @@ class _SourcesScreenState extends State<SourcesScreen> {
         SnackBar(
           content: Text(
             textExtracted
-                ? 'تم جلب محتوى الرابط وإضافته كدليل جديد بنجاح.'
+                ? 'تم جلب محتوى الرابط وإضافته كشاهد جديد بنجاح.'
                 : 'تم إضافة الرابط، لكن تعذّر استخراج محتوى نصي منه.',
           ),
         ),
@@ -326,7 +326,7 @@ class _SourcesScreenState extends State<SourcesScreen> {
       await widget.api.linkEvidenceToIndicator(evidenceId, indicatorId);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم ربط الدليل بالمؤشر المختار.')),
+        const SnackBar(content: Text('تم ربط الشاهد بالمؤشر المختار.')),
       );
     } catch (e) {
       if (!mounted) return;
@@ -363,9 +363,9 @@ class _SourcesScreenState extends State<SourcesScreen> {
           children: [
             const Text('مصادر الإنجاز', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
-            const Text('اربط مصادر إنجازاتك حتى نتمكن من اكتشاف الأدلة المهنية تلقائيًا وبناء ملفك.', style: TextStyle(color: Color(0xFF64748B))),
+            const Text('اربط مصادر إنجازاتك حتى نتمكن من اكتشاف الشواهد المهنية تلقائيًا وبناء ملفك.', style: TextStyle(color: Color(0xFF64748B))),
             const SizedBox(height: 22),
-            _SourceCard(icon: Icons.school_outlined, title: 'منصتي', subtitle: 'اربط حسابك في منصة مدرستي لاستيراد الإنجازات', button: 'ربط منصتي', onTap: () {}),
+            _SourceCard(icon: Icons.school_outlined, title: 'مدرستي', subtitle: 'اربط حسابك في منصة مدرستي لاستيراد الإنجازات', button: 'ربط مدرستي', onTap: () {}),
             const SizedBox(height: 12),
             _SourceCard(icon: Icons.cloud_outlined, title: 'Google Drive', subtitle: 'استورد الملفات من مساحة Google Drive الخاصة بك', button: 'ربط Google', onTap: _uploading ? null : _connectGoogleDrive),
             const SizedBox(height: 12),

@@ -221,7 +221,7 @@ missing: _missing,
 ),
 const SizedBox(height: 22),
 SectionTitle(
-title: 'أدلتك (${_evidence.length})',
+title: 'شواهدك (${_evidence.length})',
 action: 'عرض الكل',
 ),
 const SizedBox(height: 10),
@@ -243,7 +243,7 @@ child: const Icon(Icons.inbox_outlined, color: Color(0xFF64748B)),
 const SizedBox(width: 14),
 const Expanded(
 child: Text(
-'لا توجد أدلة بعد. ابدأ برفع ملف من تبويب المصادر.',
+'لا توجد شواهد بعد. ابدأ برفع ملف من تبويب المصادر.',
 style: TextStyle(height: 1.5, fontWeight: FontWeight.w600),
 ),
 ),

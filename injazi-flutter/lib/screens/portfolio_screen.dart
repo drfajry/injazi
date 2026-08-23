@@ -121,7 +121,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'هذا الرابط يعرض نسبة الإنجاز والمعايير المغطاة فقط — بدون تفاصيل الأدلة. أي شخص يملك الرابط يقدر يفتحه بدون تسجيل دخول.',
+                  'هذا الرابط يعرض نسبة الإنجاز والمعايير المغطاة فقط — بدون تفاصيل الشواهد. أي شخص يملك الرابط يقدر يفتحه بدون تسجيل دخول.',
                   style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                 ),
                 const SizedBox(height: 12),
@@ -335,8 +335,8 @@ class _CriterionCardState extends State<_CriterionCard> {
       builder: (context) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
-          title: const Text('حذف الدليل نهائيًا'),
-          content: const Text('سيُحذف هذا الدليل وكل ارتباطاته بالمؤشرات نهائيًا. لا يمكن التراجع عن هذا الإجراء.'),
+          title: const Text('حذف الشاهد نهائيًا'),
+          content: const Text('سيُحذف هذا الشاهد وكل ارتباطاته بالمؤشرات نهائيًا. لا يمكن التراجع عن هذا الإجراء.'),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
             FilledButton(
@@ -394,11 +394,11 @@ class _CriterionCardState extends State<_CriterionCard> {
       builder: (context) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
-          title: const Text('تعديل عنوان الدليل'),
+          title: const Text('تعديل عنوان الشاهد'),
           content: TextField(
             controller: controller,
             autofocus: true,
-            decoration: const InputDecoration(hintText: 'اكتب عنوانًا واضحًا يميّز هذا الدليل'),
+            decoration: const InputDecoration(hintText: 'اكتب عنوانًا واضحًا يميّز هذا الشاهد'),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
@@ -513,7 +513,7 @@ class _CriterionCardState extends State<_CriterionCard> {
                                 tooltip: 'حذف',
                                 itemBuilder: (context) => [
                                   const PopupMenuItem(value: 'unlink', child: Text('إزالة من هذا المؤشر فقط')),
-                                  const PopupMenuItem(value: 'delete', child: Text('حذف الدليل نهائيًا')),
+                                  const PopupMenuItem(value: 'delete', child: Text('حذف الشاهد نهائيًا')),
                                 ],
                                 onSelected: (value) async {
                                   final evidenceId = e['id'] as String;
@@ -533,7 +533,7 @@ class _CriterionCardState extends State<_CriterionCard> {
                       }).toList(),
                     ),
                   )
-                : const Text('لا يوجد دليل مرتبط بعد', style: TextStyle(fontSize: 12, color: Color(0xFFCBD5E1))),
+                : const Text('لا يوجد شاهد مرتبط بعد', style: TextStyle(fontSize: 12, color: Color(0xFFCBD5E1))),
           );
         }).toList(),
       ),
