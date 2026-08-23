@@ -11,7 +11,19 @@ import { coverageRouter } from './modules/coverage/routes.js';
 import { portfolioRouter, publicPortfolioRouter } from './modules/portfolio/routes.js';
 
 const app = express();
-app.use(cors({ origin: env.CORS_ORIGIN }));
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow the configured web app origin, plus any Chrome extension
+    // (chrome-extension://<id>) — needed for the Madrasati companion
+    // extension, which calls this API directly from the browser rather
+    // than through a server-side proxy.
+    if (!origin || origin === env.CORS_ORIGIN || origin.startsWith('chrome-extension://')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+}));
 app.use(express.json({ limit: '2mb' }));
 
 app.get('/health', (_req, res) => res.json({ ok: true, service: 'injazi-backend' }));
