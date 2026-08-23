@@ -171,7 +171,7 @@ export function buildPortfolioExportHtml(data: ExportData): string {
         .map((indicator) => {
           const covered = indicator.evidence.length > 0;
           const evidenceHtml = covered
-            ? indicator.evidence
+            ? `<div class="evidence-badge">الشواهد</div>` + indicator.evidence
                 .map((e) => {
                   const image = e.imageDataUrl
                     ? `<img class="evidence-image" src="${e.imageDataUrl}" alt="${escapeHtml(e.title)}" />`
@@ -217,10 +217,8 @@ export function buildPortfolioExportHtml(data: ExportData): string {
 
       return `
         <section class="criterion-section">
-          <div class="criterion-header">
-            <h2>${escapeHtml(section.name)}</h2>
-            <span class="criterion-badge">${section.coveredIndicators} / ${section.totalIndicators} (${sectionPercent}%)</span>
-          </div>
+          <div class="criterion-pill">${escapeHtml(section.name)}</div>
+          <div class="criterion-meta">${section.coveredIndicators} من ${section.totalIndicators} مؤشر مغطى — ${sectionPercent}%</div>
           ${indicatorsHtml}
         </section>
       `;
@@ -233,96 +231,127 @@ export function buildPortfolioExportHtml(data: ExportData): string {
 <meta charset="UTF-8" />
 <title>ملف الإنجاز — ${escapeHtml(data.teacherName)}</title>
 <style>
-  @page { size: A4; margin: 18mm 15mm; }
+  @page { size: A4; margin: 0; }
   * { box-sizing: border-box; }
   body {
     font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
-    color: #0F172A;
+    color: #1E293B;
     line-height: 1.6;
     margin: 0;
-    padding: 24px;
+    background: #FFFFFF;
   }
+  .page-padding { padding: 16mm 15mm 24mm; }
+
+  /* Decorative corner graphic — repeats on every printed page via
+     position:fixed, matching the brand motif used in the reference deck
+     (two overlapping triangles + a rotated square "diamond"). */
+  .corner-motif {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 130px;
+    height: 130px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  @media print {
+    .corner-motif { position: fixed; }
+  }
+
   .letterhead {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    font-size: 12px;
-    color: #475569;
-    border-bottom: 2px solid #0F766E;
-    padding-bottom: 10px;
-    margin-bottom: 20px;
+    align-items: center;
+    margin-bottom: 18px;
+    position: relative;
+    z-index: 1;
   }
+  .letterhead .ministry-logo { height: 46px; width: auto; object-fit: contain; }
   .letterhead .logo-placeholder {
-    width: 64px;
-    height: 64px;
+    width: 46px; height: 46px;
     border: 1px dashed #CBD5E1;
     border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; color: #94A3B8; text-align: center;
+  }
+  .letterhead .gov-text { text-align: center; }
+  .letterhead .gov-text div:first-child { font-size: 11px; color: #64748B; }
+  .letterhead .gov-text div:last-child { font-size: 12px; color: #093B64; font-weight: 700; }
+
+  /* Cover page */
+  .cover {
+    min-height: 240mm;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-size: 9px;
-    color: #94A3B8;
     text-align: center;
+    position: relative;
+    z-index: 1;
   }
-  .letterhead .ministry-logo {
-    height: 56px;
-    width: auto;
-    object-fit: contain;
+  .cover-pill {
+    background: linear-gradient(135deg, #359B77, #093B64);
+    color: white;
+    border-radius: 999px;
+    padding: 18px 44px;
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 14px;
+    box-shadow: 0 8px 20px rgba(9, 59, 100, 0.25);
   }
-  .letterhead .gov-text { text-align: center; font-weight: 700; }
-  .letterhead .gov-text div:first-child { font-size: 13px; }
-  .letterhead .gov-text div:last-child { font-size: 12px; color: #0F766E; }
-  .cover {
-    text-align: center;
-    padding: 20px 0 30px;
-    margin-bottom: 20px;
-  }
-  .cover h1 { font-size: 26px; color: #0F766E; margin: 0 0 14px; }
-  .cover-info {
+  .cover-subtitle { color: #64748B; font-size: 13px; margin-bottom: 40px; }
+  .cover-field { font-size: 15px; color: #093B64; font-weight: 700; margin-top: 30px; }
+  .cover-stat {
+    margin-top: 30px;
     display: inline-block;
-    text-align: right;
-    background: #F8FAFC;
-    border-radius: 12px;
-    padding: 16px 24px;
-    margin-bottom: 6px;
-  }
-  .cover-info div { font-size: 14px; margin: 4px 0; }
-  .cover-info .label { color: #64748B; display: inline-block; min-width: 90px; }
-  .cover .date { color: #64748B; font-size: 13px; margin-top: 10px; }
-  .overall-stat {
-    display: inline-block;
-    margin-top: 18px;
     padding: 14px 28px;
     background: #F0FDFA;
     border-radius: 12px;
     border: 1px solid #99F6E4;
   }
-  .overall-stat .percent { font-size: 32px; font-weight: 800; color: #0F766E; }
-  .overall-stat .label { font-size: 13px; color: #475569; }
-  .criterion-section { margin-bottom: 26px; page-break-inside: avoid; }
-  .criterion-header {
-    display: flex;
-    justify-content: space-between;
+  .cover-stat .percent { font-size: 30px; font-weight: 800; color: #359B77; }
+  .cover-stat .label { font-size: 12px; color: #475569; }
+  .cover-date { color: #94A3B8; font-size: 11px; margin-top: 16px; }
+
+  /* Criterion sections */
+  .criterion-section { margin-bottom: 30px; page-break-inside: avoid; position: relative; z-index: 1; }
+  .criterion-pill {
+    display: inline-flex;
     align-items: center;
-    background: #F1F5F9;
-    padding: 10px 14px;
-    border-radius: 8px;
-    margin-bottom: 10px;
+    gap: 10px;
+    background: linear-gradient(90deg, #359B77, #093B64);
+    color: white;
+    border-radius: 999px;
+    padding: 10px 22px;
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 4px;
   }
-  .criterion-header h2 { font-size: 16px; margin: 0; }
-  .criterion-badge { font-size: 13px; font-weight: 700; color: #0F766E; }
-  .indicator { padding: 8px 14px; border-bottom: 1px solid #E2E8F0; page-break-inside: avoid; }
+  .criterion-meta { font-size: 11px; color: #64748B; margin: 6px 4px 12px; }
+
+  .indicator { padding: 10px 6px; border-bottom: 1px solid #EEF2F6; page-break-inside: avoid; }
   .indicator-header { display: flex; align-items: baseline; gap: 8px; }
-  .indicator.covered .status-dot { color: #15803D; }
+  .indicator.covered .status-dot { color: #359B77; }
   .indicator.missing .status-dot { color: #CBD5E1; }
-  .indicator-name { font-size: 13px; font-weight: 600; }
-  .evidence-item { margin: 8px 0 8px 26px; page-break-inside: avoid; }
+  .indicator-name { font-size: 12.5px; font-weight: 600; }
+
+  .evidence-badge {
+    display: inline-block;
+    background: #359B77;
+    color: white;
+    border-radius: 999px;
+    padding: 3px 14px;
+    font-size: 10.5px;
+    font-weight: 700;
+    margin: 6px 0 8px 26px;
+  }
+  .evidence-item { margin: 6px 0 10px 26px; page-break-inside: avoid; }
   .evidence-title { font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px; }
   .evidence-excerpt {
     font-size: 11px;
     color: #475569;
     background: #F8FAFC;
-    border-right: 3px solid #0F766E;
+    border-right: 3px solid #359B77;
     margin: 4px 0;
     padding: 8px 12px;
     border-radius: 4px;
@@ -342,11 +371,7 @@ export function buildPortfolioExportHtml(data: ExportData): string {
     border: 1px solid #E2E8F0;
     border-radius: 6px;
   }
-  .evidence-table-wrap table {
-    border-collapse: collapse;
-    font-size: 10px;
-    width: 100%;
-  }
+  .evidence-table-wrap table { border-collapse: collapse; font-size: 10px; width: 100%; }
   .evidence-table-wrap td, .evidence-table-wrap th {
     border: 1px solid #E2E8F0;
     padding: 3px 6px;
@@ -357,6 +382,7 @@ export function buildPortfolioExportHtml(data: ExportData): string {
   .table-truncated-note { font-size: 10px; color: #94A3B8; padding: 4px 6px; margin: 0; }
   .no-content-note { font-size: 11px; color: #CBD5E1; margin: 4px 0; }
   .no-evidence { margin: 4px 0 0 0; font-size: 12px; color: #CBD5E1; }
+
   .print-hint {
     text-align: center;
     background: #FEF9C3;
@@ -365,34 +391,45 @@ export function buildPortfolioExportHtml(data: ExportData): string {
     border-radius: 8px;
     margin-bottom: 20px;
     font-size: 13px;
+    position: relative;
+    z-index: 1;
   }
   @media print { .print-hint { display: none; } }
 </style>
 </head>
 <body>
-  <div class="print-hint">استخدم Ctrl+P (أو ⌘+P) ثم اختر "حفظ كـ PDF" لتنزيل هذا الملف.</div>
-  <div class="letterhead">
-    ${ministryLogoHtml}
-    <div class="gov-text">
-      <div>المملكة العربية السعودية</div>
-      <div>وزارة التعليم${data.schoolName ? ` — ${escapeHtml(data.schoolName)}` : ''}</div>
+  <svg class="corner-motif" viewBox="0 0 130 130" xmlns="http://www.w3.org/2000/svg">
+    <rect x="70" y="18" width="46" height="46" rx="6" fill="#E2E8F0" transform="rotate(45 93 41)" />
+    <polygon points="0,130 65,130 0,55" fill="#093B64" />
+    <polygon points="0,130 130,130 65,55" fill="#359B77" opacity="0.85" />
+  </svg>
+
+  <div class="page-padding">
+    <div class="print-hint">استخدم Ctrl+P (أو ⌘+P) ثم اختر "حفظ كـ PDF" لتنزيل هذا الملف.</div>
+
+    <div class="letterhead">
+      ${ministryLogoHtml}
+      <div class="gov-text">
+        <div>المملكة العربية السعودية</div>
+        <div>وزارة التعليم${data.schoolName ? ` — ${escapeHtml(data.schoolName)}` : ''}</div>
+      </div>
+      <div class="logo-placeholder">شعار<br/>المدرسة</div>
     </div>
-    <div class="logo-placeholder">شعار<br/>المدرسة</div>
+
+    <div class="cover">
+      <div class="cover-pill">ملف الإنجاز للمعلم للعام الدراسي</div>
+      <div class="cover-subtitle">وفق نموذج تقييم أداء الوظائف التعليمية — الدليل المهني الجديد</div>
+      <div class="cover-field">اسم المعلم: ${escapeHtml(data.teacherName)}</div>
+      ${data.subject ? `<div class="cover-field">المادة: ${escapeHtml(data.subject)}</div>` : ''}
+      <div class="cover-stat">
+        <div class="percent">${overallPercent}%</div>
+        <div class="label">${data.coveredIndicators} من ${data.totalIndicators} مؤشر مغطى</div>
+      </div>
+      <div class="cover-date">تاريخ الإصدار: ${date}</div>
+    </div>
+
+    ${sectionsHtml}
   </div>
-  <div class="cover">
-    <h1>ملف الإنجاز المهني</h1>
-    <div class="cover-info">
-      <div><span class="label">اسم المعلم:</span> ${escapeHtml(data.teacherName)}</div>
-      ${data.schoolName ? `<div><span class="label">المدرسة:</span> ${escapeHtml(data.schoolName)}</div>` : ''}
-      ${data.subject ? `<div><span class="label">المادة:</span> ${escapeHtml(data.subject)}</div>` : ''}
-    </div>
-    <div class="date">تاريخ الإصدار: ${date}</div>
-    <div class="overall-stat">
-      <div class="percent">${overallPercent}%</div>
-      <div class="label">${data.coveredIndicators} من ${data.totalIndicators} مؤشر مغطى</div>
-    </div>
-  </div>
-  ${sectionsHtml}
 </body>
 </html>`;
 }
