@@ -191,15 +191,44 @@ class _SourcesScreenState extends State<SourcesScreen> {
                         ? Center(child: Text('تعذّر جلب الملفات: $error', textAlign: TextAlign.center))
                         : items.isEmpty
                             ? const Center(child: Text('لا توجد ملفات بالحساب.'))
-                            : ListView.builder(
+                            : ListView.separated(
                                 itemCount: items.length,
+                                separatorBuilder: (context, index) => const Divider(height: 1),
                                 itemBuilder: (context, index) {
                                   final item = items[index];
                                   final isImporting = importingId == item['id'];
+                                  final itemType = (item['itemType'] as String?) ?? '';
+
+                                  final icon = switch (itemType) {
+                                    String t when t == 'application/pdf' => Icons.picture_as_pdf_outlined,
+                                    String t when t.startsWith('image/') => Icons.image_outlined,
+                                    String t when t.startsWith('video/') => Icons.videocam_outlined,
+                                    String t when t.contains('word') || t.contains('document') => Icons.description_outlined,
+                                    String t when t.contains('sheet') || t.contains('excel') => Icons.table_chart_outlined,
+                                    String t when t.contains('zip') || t.contains('apk') => Icons.archive_outlined,
+                                    _ => Icons.insert_drive_file_outlined,
+                                  };
+
+                                  final typeLabel = switch (itemType) {
+                                    String t when t == 'application/pdf' => 'PDF',
+                                    String t when t.startsWith('image/') => 'صورة',
+                                    String t when t.startsWith('video/') => 'فيديو',
+                                    String t when t.contains('word') || t.contains('document') => 'Word',
+                                    String t when t.contains('sheet') || t.contains('excel') => 'Excel',
+                                    '' => 'نوع غير معروف',
+                                    _ => itemType,
+                                  };
+
                                   return ListTile(
                                     dense: true,
-                                    leading: const Icon(Icons.insert_drive_file_outlined),
-                                    title: Text(item['title'] ?? '', style: const TextStyle(fontSize: 13)),
+                                    leading: Icon(icon, color: const Color(0xFF0F766E)),
+                                    title: Text(
+                                      item['title'] ?? '',
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    subtitle: Text(typeLabel, style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
                                     trailing: isImporting
                                         ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                                         : IconButton(

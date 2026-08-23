@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../../db/prisma.js';
 import { requireAuth, getAuthenticatedUserId } from '../auth/middleware.js';
 import { buildPortfolioExportHtml, buildPublicPortfolioHtml, buildPublicNotFoundHtml } from './export-html.js';
+import { renderFirstPdfPageToImage } from './pdf-render.js';
 import { computeCoverageSummary } from '../coverage/coverage-engine.js';
 
 export const portfolioRouter = Router();
@@ -89,46 +90,63 @@ async function buildPortfolioExportData(userId: string) {
 
   criteria.sort(byCriterionCodeNumber);
 
-  const sections = criteria.map((criterion) => {
-    const indicators = criterion.indicators.map((indicator) => ({
-      id: indicator.id,
-      code: indicator.code,
-      name: indicator.name,
-      evidence: indicator.links.map((link) => {
-        const file = link.evidence.files[0];
-        const isImage = file?.mimeType?.startsWith('image/') ?? false;
+  const sections = await Promise.all(
+    criteria.map(async (criterion) => {
+      const indicators = await Promise.all(
+        criterion.indicators.map(async (indicator) => {
+          const evidence = await Promise.all(
+            indicator.links.map(async (link) => {
+              const file = link.evidence.files[0];
+              const isImage = file?.mimeType?.startsWith('image/') ?? false;
+              const isPdf = file?.mimeType === 'application/pdf';
 
-        return {
-          id: link.evidence.id,
-          title: link.evidence.title,
-          type: link.evidence.type,
-          // The extracted text itself (already stored from upload time) —
-          // shown as a quoted excerpt so the evidence is actually verifiable
-          // in the printed document, not just a filename label.
-          description: link.evidence.description,
-          // Only images are embedded as actual visual content (base64 data
-          // URI). PDFs/Word/Excel would need a rasterization step (heavy,
-          // same memory concerns as server-side PDF generation) — those show
-          // their extracted text excerpt instead, which is honest and doesn't
-          // require new heavy dependencies.
-          imageDataUrl: isImage && file?.data
-            ? `data:${file.mimeType};base64,${Buffer.from(file.data).toString('base64')}`
-            : null,
-        };
-      }),
-    }));
+              let imageDataUrl: string | null = null;
 
-    const coveredCount = indicators.filter((indicator) => indicator.evidence.length > 0).length;
+              if (isImage && file?.data) {
+                imageDataUrl = `data:${file.mimeType};base64,${Buffer.from(file.data).toString('base64')}`;
+              } else if (isPdf && file?.data) {
+                // Best-effort: render the actual first page as an image so
+                // the evidence shows as itself, not just extracted text.
+                // Falls back to the text excerpt below if rendering fails
+                // for any reason (unsupported PDF structure, etc.).
+                const rendered = await renderFirstPdfPageToImage(Buffer.from(file.data));
+                if (rendered) imageDataUrl = `data:image/png;base64,${rendered}`;
+              }
 
-    return {
-      criterionId: criterion.id,
-      code: criterion.code,
-      name: criterion.name,
-      totalIndicators: indicators.length,
-      coveredIndicators: coveredCount,
-      indicators,
-    };
-  });
+              return {
+                id: link.evidence.id,
+                title: link.evidence.title,
+                type: link.evidence.type,
+                // Shown as a quoted excerpt underneath the rendered page (or
+                // alone, if rendering wasn't possible/applicable) — still
+                // useful for search/verification even when an image exists.
+                description: link.evidence.description,
+                imageDataUrl,
+              };
+            }),
+          );
+
+          return {
+            id: indicator.id,
+            code: indicator.code,
+            name: indicator.name,
+            evidence,
+          };
+        }),
+      );
+
+      const coveredCount = indicators.filter((indicator) => indicator.evidence.length > 0).length;
+
+      return {
+        criterionId: criterion.id,
+        code: criterion.code,
+        name: criterion.name,
+        totalIndicators: indicators.length,
+        coveredIndicators: coveredCount,
+        indicators,
+      };
+    }),
+  );
 
   const totalIndicators = sections.reduce((sum, section) => sum + section.totalIndicators, 0);
   const coveredIndicators = sections.reduce((sum, section) => sum + section.coveredIndicators, 0);
