@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/api_service.dart';
 import '../utils/file_preview_web.dart';
@@ -101,6 +102,85 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     }
   }
 
+  bool _sharing = false;
+
+  Future<void> _shareLink() async {
+    setState(() => _sharing = true);
+
+    try {
+      final url = await widget.api.publishPortfolio();
+
+      if (!mounted) return;
+
+      await showDialog<void>(
+        context: context,
+        builder: (context) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            title: const Text('رابط المشاركة العام'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'هذا الرابط يعرض نسبة الإنجاز والمعايير المغطاة فقط — بدون تفاصيل الأدلة. أي شخص يملك الرابط يقدر يفتحه بدون تسجيل دخول.',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                ),
+                const SizedBox(height: 12),
+                SelectableText(url, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: url));
+                  if (context.mounted) Navigator.pop(context);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('تم نسخ الرابط.')),
+                    );
+                  }
+                },
+                child: const Text('نسخ الرابط'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await _unshareLink();
+                },
+                style: TextButton.styleFrom(foregroundColor: const Color(0xFFDC2626)),
+                child: const Text('إلغاء المشاركة'),
+              ),
+              FilledButton(onPressed: () => Navigator.pop(context), child: const Text('تم')),
+            ],
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذّر إنشاء رابط المشاركة: ${e.toString().replaceFirst('Exception: ', '')}')),
+      );
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
+
+  Future<void> _unshareLink() async {
+    try {
+      await widget.api.unpublishPortfolio();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم إلغاء رابط المشاركة.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذّر إلغاء المشاركة: ${e.toString().replaceFirst('Exception: ', '')}')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -189,6 +269,18 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _sharing ? null : _shareLink,
+                    style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white)),
+                    icon: _sharing
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.share_outlined),
+                    label: const Text('مشاركة رابط عام'),
+                  ),
                 ),
               ],
             ),

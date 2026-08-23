@@ -48,6 +48,105 @@ function escapeHtml(value: string): string {
  * this HTML is opened in a new tab and the person uses the browser's own
  * "Print → Save as PDF" — same visual result, zero server risk.
  */
+export function buildPublicPortfolioHtml(data: {
+  teacherName: string;
+  overallCoverage: number;
+  totalIndicators: number;
+  complete: number;
+  sections: { name: string; indicators: { name: string; covered: boolean }[] }[];
+}): string {
+  const percent = (data.overallCoverage * 100).toFixed(1);
+
+  const sectionsHtml = data.sections
+    .map((section) => {
+      const covered = section.indicators.filter((i) => i.covered).length;
+      const total = section.indicators.length;
+      return `
+        <div class="pub-section">
+          <div class="pub-section-header">
+            <span>${escapeHtml(section.name)}</span>
+            <span class="pub-badge">${covered}/${total}</span>
+          </div>
+          <div class="pub-dots">
+            ${section.indicators.map((i) => `<span class="dot ${i.covered ? 'on' : ''}" title="${escapeHtml(i.name)}"></span>`).join('')}
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+
+  return `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ملف إنجاز — ${escapeHtml(data.teacherName)}</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+    background: #F8FAFC;
+    color: #0F172A;
+    margin: 0;
+    padding: 24px 16px;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  .header { text-align: center; margin-bottom: 24px; }
+  .header h1 { font-size: 20px; margin: 0 0 4px; color: #0F766E; }
+  .header .name { font-weight: 700; font-size: 16px; }
+  .stat {
+    background: linear-gradient(135deg, #0F766E, #115E59);
+    color: white;
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .stat .percent { font-size: 34px; font-weight: 800; }
+  .stat .label { font-size: 13px; opacity: 0.85; }
+  .pub-section {
+    background: white;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    border: 1px solid #E2E8F0;
+  }
+  .pub-section-header { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  .pub-badge { color: #0F766E; }
+  .pub-dots { display: flex; flex-wrap: wrap; gap: 5px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #E2E8F0; display: inline-block; }
+  .dot.on { background: #15803D; }
+  .footer { text-align: center; font-size: 11px; color: #94A3B8; margin-top: 20px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1>ملف الإنجاز المهني</h1>
+      <div class="name">${escapeHtml(data.teacherName)}</div>
+    </div>
+    <div class="stat">
+      <div class="percent">${percent}%</div>
+      <div class="label">${data.complete} من ${data.totalIndicators} مؤشر مغطى</div>
+    </div>
+    ${sectionsHtml}
+    <div class="footer">هذا ملخص عام لملف الإنجاز — لا يعرض تفاصيل الأدلة المرفقة.</div>
+  </div>
+</body>
+</html>`;
+}
+
+export function buildPublicNotFoundHtml(): string {
+  return `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head><meta charset="UTF-8" /><title>الرابط غير متاح</title></head>
+<body style="font-family: sans-serif; text-align: center; padding: 60px 20px; color: #64748B;">
+  <h2>هذا الرابط غير متاح</h2>
+  <p>إما أن الرابط غير صحيح، أو أن صاحب الملف ألغى مشاركته.</p>
+</body>
+</html>`;
+}
+
 export function buildPortfolioExportHtml(data: ExportData): string {
   const date = new Intl.DateTimeFormat('ar-SA-u-ca-gregory', {
     year: 'numeric',

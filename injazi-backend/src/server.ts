@@ -8,7 +8,7 @@ import { profileRouter } from './modules/profile/routes.js';
 import { sourcesRouter } from './modules/sources/routes.js';
 import { evidenceRouter } from './modules/evidence/routes.js';
 import { coverageRouter } from './modules/coverage/routes.js';
-import { portfolioRouter } from './modules/portfolio/routes.js';
+import { portfolioRouter, publicPortfolioRouter } from './modules/portfolio/routes.js';
 
 const app = express();
 app.use(cors({ origin: env.CORS_ORIGIN }));
@@ -21,6 +21,7 @@ app.use('/sources', sourcesRouter);
 app.use('/evidence', evidenceRouter);
 app.use('/me/coverage', coverageRouter);
 app.use('/me/portfolio', portfolioRouter);
+app.use('/public/portfolio', publicPortfolioRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

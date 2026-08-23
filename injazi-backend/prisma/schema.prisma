@@ -249,7 +249,7 @@ academicYearId String?
 versionNo      Int
 generatedAt    DateTime @default(now())
 pdfKey         String?
-publicSlug     String?
+publicSlug     String?  @unique
 visibility     String   @default("PRIVATE")
 user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 @@unique([userId, versionNo])

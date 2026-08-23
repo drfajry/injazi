@@ -553,6 +553,39 @@ class ApiService {
     return response.bodyBytes;
   }
 
+  Future<String> publishPortfolio() async {
+    final token = await getAccessToken();
+
+    final response = await _client.post(
+      Uri.parse('$baseUrl/me/portfolio/publish'),
+      headers: _authorizedHeaders(token),
+      body: jsonEncode({}),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessage(response.body) ?? 'Failed to publish portfolio';
+      throw Exception(message);
+    }
+
+    final data = Map<String, dynamic>.from(jsonDecode(response.body));
+    final slug = (data['data'] as Map<String, dynamic>)['slug'] as String;
+    return '$baseUrl/public/portfolio/$slug';
+  }
+
+  Future<void> unpublishPortfolio() async {
+    final token = await getAccessToken();
+
+    final response = await _client.post(
+      Uri.parse('$baseUrl/me/portfolio/unpublish'),
+      headers: _authorizedHeaders(token),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessage(response.body) ?? 'Failed to unpublish portfolio';
+      throw Exception(message);
+    }
+  }
+
   String? _extractErrorMessage(String body) {
     try {
       final decoded = jsonDecode(body);
