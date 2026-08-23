@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -134,12 +132,12 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
               TextButton(
                 onPressed: () async {
                   await Clipboard.setData(ClipboardData(text: url));
-                  if (context.mounted) Navigator.pop(context);
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('تم نسخ الرابط.')),
-                    );
-                  }
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('تم نسخ الرابط.')),
+                  );
                 },
                 child: const Text('نسخ الرابط'),
               ),
