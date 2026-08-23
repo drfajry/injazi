@@ -395,7 +395,7 @@ sourcesRouter.post('/:id/import/:fileId', requireAuth, async (req, res, next) =>
       return res.status(404).json({ error: 'الملف غير موجود ضمن قائمة الملفات المتزامنة. جرّب المزامنة أولًا.' });
     }
 
-    const downloaded = await downloadDriveFile(tokens, fileId, sourceItem.itemType);
+    const downloaded = await downloadDriveFile(tokens, fileId, sourceItem.itemType ?? 'application/octet-stream');
 
     if (downloaded.buffer.byteLength > MAX_DRIVE_IMPORT_BYTES) {
       return res.status(413).json({ error: 'حجم الملف كبير جدًا (الحد الأقصى 15MB).' });
