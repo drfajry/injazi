@@ -172,11 +172,14 @@ export function buildPortfolioExportHtml(data: ExportData): string {
           const evidenceHtml = covered
             ? indicator.evidence
                 .map((e) => {
-                  const excerpt = e.description
-                    ? `<blockquote class="evidence-excerpt">${escapeHtml(e.description.slice(0, 600))}${e.description.length > 600 ? '…' : ''}</blockquote>`
-                    : '';
                   const image = e.imageDataUrl
                     ? `<img class="evidence-image" src="${e.imageDataUrl}" alt="${escapeHtml(e.title)}" />`
+                    : '';
+                  // Only show the extracted-text excerpt when there's no
+                  // rendered image — once the real page/photo is visible,
+                  // repeating its text underneath is redundant clutter.
+                  const excerpt = !image && e.description
+                    ? `<blockquote class="evidence-excerpt">${escapeHtml(e.description.slice(0, 600))}${e.description.length > 600 ? '…' : ''}</blockquote>`
                     : '';
                   const noContent = !excerpt && !image
                     ? `<p class="no-content-note">(لم يتم استخراج محتوى نصي قابل للعرض من هذا الملف)</p>`

@@ -495,6 +495,21 @@ class ApiService {
     );
   }
 
+  Future<void> renameEvidence(String evidenceId, String title) async {
+    final token = await getAccessToken();
+
+    final response = await _client.patch(
+      Uri.parse('$baseUrl/evidence/$evidenceId'),
+      headers: _authorizedHeaders(token),
+      body: jsonEncode({'title': title}),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessage(response.body) ?? 'Failed to rename evidence';
+      throw Exception(message);
+    }
+  }
+
   Future<void> deleteEvidence(String evidenceId) async {
     final token = await getAccessToken();
 

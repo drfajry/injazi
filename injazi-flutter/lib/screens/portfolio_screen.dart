@@ -386,6 +386,36 @@ class _CriterionCardState extends State<_CriterionCard> {
     });
   }
 
+  Future<void> _renameEvidence(Map<String, dynamic> evidence) async {
+    final controller = TextEditingController(text: evidence['title'] as String? ?? '');
+
+    final newTitle = await showDialog<String>(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          title: const Text('تعديل عنوان الدليل'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(hintText: 'اكتب عنوانًا واضحًا يميّز هذا الدليل'),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
+              child: const Text('حفظ'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (newTitle == null || newTitle.isEmpty) return;
+
+    await _runAction(() => widget.api.renameEvidence(evidence['id'] as String, newTitle));
+  }
+
   Future<void> _runAction(Future<void> Function() action) async {
     try {
       await action();
@@ -465,7 +495,14 @@ class _CriterionCardState extends State<_CriterionCard> {
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.edit_outlined, size: 17),
+                                icon: const Icon(Icons.drive_file_rename_outline, size: 17),
+                                color: const Color(0xFF64748B),
+                                tooltip: 'تعديل العنوان',
+                                visualDensity: VisualDensity.compact,
+                                onPressed: () => _renameEvidence(e),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.swap_horiz, size: 17),
                                 color: const Color(0xFF64748B),
                                 tooltip: 'نقل إلى مؤشر آخر',
                                 visualDensity: VisualDensity.compact,

@@ -83,6 +83,31 @@ evidenceRouter.post('/:id/reject', requireAuth, async (req, res, next) => {
 // Deletes an evidence item entirely — used when something was uploaded by
 // mistake. Cascades to its file and all its indicator links (schema already
 // defines onDelete: Cascade on both relations), so nothing is left orphaned.
+// Renames an evidence item's title — needed since multiple evidence can be
+// linked to the same indicator, and auto-generated filenames don't always
+// distinguish them clearly (e.g. two files both named "اختبار.pdf").
+evidenceRouter.patch('/:id', requireAuth, async (req, res, next) => {
+  try {
+    const userId = getAuthenticatedUserId(req);
+    const id = z.string().cuid().parse(req.params.id);
+    const body = z.object({ title: z.string().trim().min(1).max(200) }).parse(req.body);
+
+    const evidence = await prisma.evidence.findUnique({ where: { id } });
+    if (!evidence || evidence.userId !== userId) {
+      return res.status(404).json({ error: 'Evidence not found' });
+    }
+
+    const updated = await prisma.evidence.update({
+      where: { id },
+      data: { title: body.title },
+    });
+
+    res.json({ data: updated });
+  } catch (error) {
+    next(error);
+  }
+});
+
 evidenceRouter.delete('/:id', requireAuth, async (req, res, next) => {
   try {
     const userId = getAuthenticatedUserId(req);
