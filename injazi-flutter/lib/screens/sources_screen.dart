@@ -100,6 +100,16 @@ class _SourcesScreenState extends State<SourcesScreen> {
     setState(() => _uploading = true);
 
     try {
+      // If already connected, skip re-auth and go straight to picking files.
+      final sources = await widget.api.getSources();
+      final existing = sources.where((s) => s['type'] == 'GOOGLE_DRIVE').toList();
+
+      if (existing.isNotEmpty) {
+        if (mounted) setState(() => _uploading = false);
+        await _openDriveFilePicker(existing.first['id'] as String);
+        return;
+      }
+
       final url = await widget.api.getGoogleAuthUrl();
       final uri = Uri.parse(url);
 
@@ -118,6 +128,97 @@ class _SourcesScreenState extends State<SourcesScreen> {
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
+  }
+
+  Future<void> _openDriveFilePicker(String sourceId) async {
+    List<Map<String, dynamic>> items = [];
+    bool loading = true;
+    String? error;
+    String? importingId;
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          if (loading && error == null && items.isEmpty) {
+            widget.api.syncSource(sourceId).then((result) {
+              final fetchedItems = List<Map<String, dynamic>>.from(
+                (result['items'] as List? ?? []).map((i) => Map<String, dynamic>.from(i)),
+              );
+              setDialogState(() {
+                items = fetchedItems;
+                loading = false;
+              });
+            }).catchError((e) {
+              setDialogState(() {
+                error = e.toString().replaceFirst('Exception: ', '');
+                loading = false;
+              });
+            });
+          }
+
+          Future<void> importFile(Map<String, dynamic> item) async {
+            setDialogState(() => importingId = item['id'] as String);
+
+            try {
+              await widget.api.importDriveFile(sourceId, item['externalId'] as String);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('تم استيراد "${item['title']}" كدليل جديد بنجاح.')),
+                );
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('تعذّر الاستيراد: ${e.toString().replaceFirst('Exception: ', '')}')),
+                );
+              }
+            } finally {
+              setDialogState(() => importingId = null);
+            }
+          }
+
+          return Directionality(
+            textDirection: TextDirection.rtl,
+            child: AlertDialog(
+              title: const Text('ملفات Google Drive'),
+              content: SizedBox(
+                width: double.maxFinite,
+                height: 420,
+                child: loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : error != null
+                        ? Center(child: Text('تعذّر جلب الملفات: $error', textAlign: TextAlign.center))
+                        : items.isEmpty
+                            ? const Center(child: Text('لا توجد ملفات بالحساب.'))
+                            : ListView.builder(
+                                itemCount: items.length,
+                                itemBuilder: (context, index) {
+                                  final item = items[index];
+                                  final isImporting = importingId == item['id'];
+                                  return ListTile(
+                                    dense: true,
+                                    leading: const Icon(Icons.insert_drive_file_outlined),
+                                    title: Text(item['title'] ?? '', style: const TextStyle(fontSize: 13)),
+                                    trailing: isImporting
+                                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                                        : IconButton(
+                                            icon: const Icon(Icons.download_outlined),
+                                            tooltip: 'استيراد كدليل',
+                                            onPressed: importingId != null ? null : () => importFile(item),
+                                          ),
+                                  );
+                                },
+                              ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text('إغلاق')),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _addUrl() async {

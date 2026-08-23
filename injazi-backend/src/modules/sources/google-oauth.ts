@@ -88,6 +88,56 @@ export type DriveFile = {
 };
 
 /**
+ * Google Docs/Sheets/Slides aren't real downloadable files (they're live
+ * documents) — Drive's `files.get` with alt=media only works on actual
+ * binary files. These need `files.export` instead, converted to a normal
+ * format we can already extract text from.
+ */
+const GOOGLE_NATIVE_EXPORT_MIME: Record<string, string> = {
+  'application/vnd.google-apps.document': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.google-apps.spreadsheet': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.google-apps.presentation': 'application/pdf',
+};
+
+export type DownloadedDriveFile = {
+  buffer: Buffer;
+  mimeType: string;
+};
+
+/**
+ * Downloads a single file's actual content from Drive, ready to be treated
+ * exactly like a manually-uploaded file (text extraction, indicator
+ * matching, etc.) via the same createEvidenceCandidate path.
+ */
+export async function downloadDriveFile(
+  tokens: GoogleTokens,
+  fileId: string,
+  mimeType: string,
+): Promise<DownloadedDriveFile> {
+  const client = getOAuthClient();
+  client.setCredentials(tokens);
+
+  const drive = google.drive({ version: 'v3', auth: client });
+
+  const exportMimeType = GOOGLE_NATIVE_EXPORT_MIME[mimeType];
+
+  const response = exportMimeType
+    ? await drive.files.export(
+        { fileId, mimeType: exportMimeType },
+        { responseType: 'arraybuffer' },
+      )
+    : await drive.files.get(
+        { fileId, alt: 'media' },
+        { responseType: 'arraybuffer' },
+      );
+
+  return {
+    buffer: Buffer.from(response.data as ArrayBuffer),
+    mimeType: exportMimeType ?? mimeType,
+  };
+}
+
+/**
  * Lists recent files from the user's Drive using stored tokens. The
  * googleapis client auto-refreshes the access token using the stored
  * refresh_token when it has expired.

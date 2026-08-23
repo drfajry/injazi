@@ -586,6 +586,56 @@ class ApiService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getSources() async {
+    final token = await getAccessToken();
+
+    final response = await _client.get(
+      Uri.parse('$baseUrl/sources'),
+      headers: _authorizedHeaders(token),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Failed to load sources');
+    }
+
+    final data = Map<String, dynamic>.from(jsonDecode(response.body));
+    return List<Map<String, dynamic>>.from(
+      (data['data'] as List).map((s) => Map<String, dynamic>.from(s)),
+    );
+  }
+
+  Future<Map<String, dynamic>> syncSource(String sourceId) async {
+    final token = await getAccessToken();
+
+    final response = await _client.post(
+      Uri.parse('$baseUrl/sources/$sourceId/sync'),
+      headers: _authorizedHeaders(token),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessage(response.body) ?? 'Failed to sync source';
+      throw Exception(message);
+    }
+
+    return Map<String, dynamic>.from(jsonDecode(response.body));
+  }
+
+  Future<Map<String, dynamic>> importDriveFile(String sourceId, String fileId) async {
+    final token = await getAccessToken();
+
+    final response = await _client.post(
+      Uri.parse('$baseUrl/sources/$sourceId/import/$fileId'),
+      headers: _authorizedHeaders(token),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessage(response.body) ?? 'Failed to import file';
+      throw Exception(message);
+    }
+
+    return Map<String, dynamic>.from(jsonDecode(response.body));
+  }
+
   String? _extractErrorMessage(String body) {
     try {
       final decoded = jsonDecode(body);
