@@ -26,6 +26,7 @@ type ExportData = {
   teacherName: string;
   schoolName: string | null;
   subject: string | null;
+  generalInfo: ExportEvidence[];
   sections: ExportSection[];
   totalIndicators: number;
   coveredIndicators: number;
@@ -160,6 +161,35 @@ export function buildPortfolioExportHtml(data: ExportData): string {
   const ministryLogoHtml = ministryLogo
     ? `<img class="ministry-logo" src="data:image/png;base64,${ministryLogo}" alt="شعار وزارة التعليم" />`
     : `<div class="logo-placeholder">شعار<br/>الوزارة</div>`;
+
+  const generalInfoHtml = data.generalInfo.length
+    ? `
+      <section class="criterion-section general-info-section">
+        <div class="criterion-pill">بيانات عامة</div>
+        <div class="criterion-meta">الجدول الدراسي وبيانات الفصول — لإفادة الإدارة والمشرفين</div>
+        ${data.generalInfo
+          .map((e) => {
+            const image = e.imageDataUrl
+              ? `<img class="evidence-image" src="${e.imageDataUrl}" alt="${escapeHtml(e.title)}" />`
+              : '';
+            const table = !image && e.tableHtml ? `<div class="evidence-table-wrap">${e.tableHtml}</div>` : '';
+            const excerpt = !image && !table && e.description
+              ? `<blockquote class="evidence-excerpt">${escapeHtml(e.description.slice(0, 600))}${e.description.length > 600 ? '…' : ''}</blockquote>`
+              : '';
+
+            return `
+              <div class="evidence-item">
+                <div class="evidence-title">📎 ${escapeHtml(e.title)}</div>
+                ${image}
+                ${table}
+                ${excerpt}
+              </div>
+            `;
+          })
+          .join('')}
+      </section>
+    `
+    : '';
 
   const sectionsHtml = data.sections
     .map((section) => {
@@ -428,6 +458,7 @@ export function buildPortfolioExportHtml(data: ExportData): string {
       <div class="cover-date">تاريخ الإصدار: ${date}</div>
     </div>
 
+    ${generalInfoHtml}
     ${sectionsHtml}
   </div>
 </body>

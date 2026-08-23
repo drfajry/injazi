@@ -74,7 +74,55 @@ async function buildPortfolioData(userId: string) {
   };
 }
 
+async function renderEvidenceForExport(evidence: {
+  id: string;
+  title: string;
+  type: string;
+  description: string | null;
+  files: { mimeType: string; data: Uint8Array | null }[];
+}) {
+  const file = evidence.files[0];
+  const isImage = file?.mimeType?.startsWith('image/') ?? false;
+  const isPdf = file?.mimeType === 'application/pdf';
+  const isExcel =
+    file?.mimeType === 'application/vnd.ms-excel' ||
+    file?.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+  let imageDataUrl: string | null = null;
+  let tableHtml: string | null = null;
+
+  if (isImage && file?.data) {
+    imageDataUrl = `data:${file.mimeType};base64,${Buffer.from(file.data).toString('base64')}`;
+  } else if (isPdf && file?.data) {
+    const rendered = await renderFirstPdfPageToImage(Buffer.from(file.data));
+    if (rendered) imageDataUrl = `data:image/png;base64,${rendered}`;
+  } else if (isExcel && file?.data) {
+    tableHtml = renderExcelAsHtmlTable(Buffer.from(file.data));
+  }
+
+  return {
+    id: evidence.id,
+    title: evidence.title,
+    type: evidence.type,
+    description: evidence.description,
+    imageDataUrl,
+    tableHtml,
+  };
+}
+
 async function buildPortfolioExportData(userId: string) {
+  const generalInfoEvidence = await prisma.evidence.findMany({
+    where: {
+      userId,
+      status: 'APPROVED',
+      metadata: { path: ['category'], equals: 'GENERAL_INFO' },
+    },
+    include: { files: true },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  const generalInfo = await Promise.all(generalInfoEvidence.map(renderEvidenceForExport));
+
   const criteria = await prisma.criterion.findMany({
     include: {
       indicators: {
@@ -96,44 +144,7 @@ async function buildPortfolioExportData(userId: string) {
       const indicators = await Promise.all(
         criterion.indicators.map(async (indicator) => {
           const evidence = await Promise.all(
-            indicator.links.map(async (link) => {
-              const file = link.evidence.files[0];
-              const isImage = file?.mimeType?.startsWith('image/') ?? false;
-              const isPdf = file?.mimeType === 'application/pdf';
-              const isExcel =
-                file?.mimeType === 'application/vnd.ms-excel' ||
-                file?.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
-              let imageDataUrl: string | null = null;
-              let tableHtml: string | null = null;
-
-              if (isImage && file?.data) {
-                imageDataUrl = `data:${file.mimeType};base64,${Buffer.from(file.data).toString('base64')}`;
-              } else if (isPdf && file?.data) {
-                // Best-effort: render the actual first page as an image so
-                // the evidence shows as itself, not just extracted text.
-                // Falls back to the text excerpt below if rendering fails
-                // for any reason (unsupported PDF structure, etc.).
-                const rendered = await renderFirstPdfPageToImage(Buffer.from(file.data));
-                if (rendered) imageDataUrl = `data:image/png;base64,${rendered}`;
-              } else if (isExcel && file?.data) {
-                // Same idea for spreadsheets: show it as an actual table,
-                // not a flattened CSV text blob.
-                tableHtml = renderExcelAsHtmlTable(Buffer.from(file.data));
-              }
-
-              return {
-                id: link.evidence.id,
-                title: link.evidence.title,
-                type: link.evidence.type,
-                // Shown as a quoted excerpt underneath the rendered page (or
-                // alone, if rendering wasn't possible/applicable) — still
-                // useful for search/verification even when an image exists.
-                description: link.evidence.description,
-                imageDataUrl,
-                tableHtml,
-              };
-            }),
+            indicator.links.map((link) => renderEvidenceForExport(link.evidence)),
           );
 
           return {
@@ -162,6 +173,7 @@ async function buildPortfolioExportData(userId: string) {
   const coveredIndicators = sections.reduce((sum, section) => sum + section.coveredIndicators, 0);
 
   return {
+    generalInfo,
     sections,
     totalIndicators,
     coveredIndicators,

@@ -31,9 +31,37 @@ evidenceRouter.post('/manual', requireAuth, async (req, res, next) => {
       description: z.string().optional(),
       type: z.nativeEnum(EvidenceType).default(EvidenceType.DOCUMENT),
       confidence: z.number().min(0).max(1).default(0.95),
+      // When the caller already knows the correct indicator (e.g. the
+      // Madrasati extension detecting which section of the site the
+      // teacher is on), this links directly and skips the automatic
+      // keyword matcher entirely — a known-correct link beats a guess.
+      indicatorId: z.string().min(1).optional(),
+      // Marks evidence that belongs in the portfolio's general prefatory
+      // section (e.g. class schedule, student roster) rather than under
+      // any of the 53 indicators — visible to school leadership context,
+      // not tied to a specific performance criterion.
+      category: z.enum(['GENERAL_INFO']).optional(),
     }).parse(req.body);
 
-    const evidence = await createEvidenceCandidate({ ...body, userId });
+    const { indicatorId, category, ...candidateFields } = body;
+
+    const evidence = await createEvidenceCandidate({
+      ...candidateFields,
+      userId,
+      metadata: category ? { category } : undefined,
+      // Skip the automatic matcher when we already have a known-correct
+      // indicator or this is general info with no indicator to match.
+      skipAutoMatch: Boolean(indicatorId) || Boolean(category),
+    });
+
+    if (indicatorId) {
+      await prisma.evidenceIndicatorLink.upsert({
+        where: { evidenceId_indicatorId: { evidenceId: evidence.id, indicatorId } },
+        update: { matchScore: 1, modelVersion: 'source-mapped' },
+        create: { evidenceId: evidence.id, indicatorId, matchScore: 1, modelVersion: 'source-mapped' },
+      });
+    }
+
     res.status(201).json({ data: evidence });
   } catch (error) {
     next(error);

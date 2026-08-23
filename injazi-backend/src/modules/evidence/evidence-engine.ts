@@ -12,6 +12,11 @@ eventDate?: Date;
 confidence: number;
 sourceItemId?: string;
 metadata?: Prisma.InputJsonValue;
+// When true, the automatic keyword-matching step is skipped entirely —
+// used when the caller already knows the correct indicator (or knows
+// there isn't one, e.g. general prefatory info) so a guess never
+// overrides a known-correct answer.
+skipAutoMatch?: boolean;
 };
 
 export async function createEvidenceCandidate(candidate: Candidate) {
@@ -33,12 +38,14 @@ metadata: candidate.metadata,
 },
 });
 
+if (!candidate.skipAutoMatch) {
 // Matches the new evidence against the 53 official indicators in the
 // background. Never blocks or fails evidence creation — a matching
 // failure just means no links get created, which is safe.
 matchEvidenceToIndicators(evidence.id).catch((error) => {
 console.error(`Indicator matching failed for evidence ${evidence.id}:`, error);
 });
+}
 
 return evidence;
 }
