@@ -19,15 +19,19 @@ export function renderExcelAsHtmlTable(buffer: Buffer): string | null {
 
     const sheet = workbook.Sheets[firstSheetName];
 
-    // Cap huge sheets so the export page doesn't balloon — a truncated
-    // table with a note is more useful than a 5,000-row wall.
+    // sheet_to_html's TypeScript types don't expose a `range` option (even
+    // though some xlsx versions accept it at runtime) — so cap row count by
+    // temporarily shrinking the sheet's own !ref bounds instead, which every
+    // version respects.
     const range = XLSX.utils.decode_range(sheet['!ref'] ?? 'A1');
     const wasTruncated = range.e.r - range.s.r + 1 > MAX_ROWS_PER_SHEET;
+
     if (wasTruncated) {
-      range.e.r = range.s.r + MAX_ROWS_PER_SHEET - 1;
+      const truncatedRange = { ...range, e: { ...range.e, r: range.s.r + MAX_ROWS_PER_SHEET - 1 } };
+      sheet['!ref'] = XLSX.utils.encode_range(truncatedRange);
     }
 
-    const html = XLSX.utils.sheet_to_html(sheet, { header: '', footer: '', range });
+    const html = XLSX.utils.sheet_to_html(sheet, { header: '', footer: '' });
 
     // sheet_to_html wraps output in its own <html><body> tags — strip those
     // since we're embedding this inside our own document.
