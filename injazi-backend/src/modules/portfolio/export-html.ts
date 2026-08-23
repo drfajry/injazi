@@ -5,6 +5,7 @@ type ExportEvidence = {
   type: string;
   description: string | null;
   imageDataUrl: string | null;
+  tableHtml: string | null;
 };
 
 type ExportIndicator = {
@@ -175,13 +176,17 @@ export function buildPortfolioExportHtml(data: ExportData): string {
                   const image = e.imageDataUrl
                     ? `<img class="evidence-image" src="${e.imageDataUrl}" alt="${escapeHtml(e.title)}" />`
                     : '';
+                  const table = !image && e.tableHtml
+                    ? `<div class="evidence-table-wrap">${e.tableHtml}</div>`
+                    : '';
                   // Only show the extracted-text excerpt when there's no
-                  // rendered image — once the real page/photo is visible,
-                  // repeating its text underneath is redundant clutter.
-                  const excerpt = !image && e.description
+                  // rendered image or table — once the real content is
+                  // visible, repeating it as plain text underneath is
+                  // redundant clutter.
+                  const excerpt = !image && !table && e.description
                     ? `<blockquote class="evidence-excerpt">${escapeHtml(e.description.slice(0, 600))}${e.description.length > 600 ? '…' : ''}</blockquote>`
                     : '';
-                  const noContent = !excerpt && !image
+                  const noContent = !excerpt && !image && !table
                     ? `<p class="no-content-note">(لم يتم استخراج محتوى نصي قابل للعرض من هذا الملف)</p>`
                     : '';
 
@@ -189,6 +194,7 @@ export function buildPortfolioExportHtml(data: ExportData): string {
                     <div class="evidence-item">
                       <div class="evidence-title">📎 ${escapeHtml(e.title)}</div>
                       ${image}
+                      ${table}
                       ${excerpt}
                       ${noContent}
                     </div>
@@ -330,6 +336,25 @@ export function buildPortfolioExportHtml(data: ExportData): string {
     margin: 6px 0;
     display: block;
   }
+  .evidence-table-wrap {
+    margin: 6px 0;
+    overflow-x: auto;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+  }
+  .evidence-table-wrap table {
+    border-collapse: collapse;
+    font-size: 10px;
+    width: 100%;
+  }
+  .evidence-table-wrap td, .evidence-table-wrap th {
+    border: 1px solid #E2E8F0;
+    padding: 3px 6px;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .evidence-table-wrap tr:nth-child(even) { background: #F8FAFC; }
+  .table-truncated-note { font-size: 10px; color: #94A3B8; padding: 4px 6px; margin: 0; }
   .no-content-note { font-size: 11px; color: #CBD5E1; margin: 4px 0; }
   .no-evidence { margin: 4px 0 0 0; font-size: 12px; color: #CBD5E1; }
   .print-hint {

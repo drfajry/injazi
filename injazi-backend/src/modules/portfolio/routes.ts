@@ -4,6 +4,7 @@ import { prisma } from '../../db/prisma.js';
 import { requireAuth, getAuthenticatedUserId } from '../auth/middleware.js';
 import { buildPortfolioExportHtml, buildPublicPortfolioHtml, buildPublicNotFoundHtml } from './export-html.js';
 import { renderFirstPdfPageToImage } from './pdf-render.js';
+import { renderExcelAsHtmlTable } from './excel-render.js';
 import { computeCoverageSummary } from '../coverage/coverage-engine.js';
 
 export const portfolioRouter = Router();
@@ -99,8 +100,12 @@ async function buildPortfolioExportData(userId: string) {
               const file = link.evidence.files[0];
               const isImage = file?.mimeType?.startsWith('image/') ?? false;
               const isPdf = file?.mimeType === 'application/pdf';
+              const isExcel =
+                file?.mimeType === 'application/vnd.ms-excel' ||
+                file?.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
               let imageDataUrl: string | null = null;
+              let tableHtml: string | null = null;
 
               if (isImage && file?.data) {
                 imageDataUrl = `data:${file.mimeType};base64,${Buffer.from(file.data).toString('base64')}`;
@@ -111,6 +116,10 @@ async function buildPortfolioExportData(userId: string) {
                 // for any reason (unsupported PDF structure, etc.).
                 const rendered = await renderFirstPdfPageToImage(Buffer.from(file.data));
                 if (rendered) imageDataUrl = `data:image/png;base64,${rendered}`;
+              } else if (isExcel && file?.data) {
+                // Same idea for spreadsheets: show it as an actual table,
+                // not a flattened CSV text blob.
+                tableHtml = renderExcelAsHtmlTable(Buffer.from(file.data));
               }
 
               return {
@@ -122,6 +131,7 @@ async function buildPortfolioExportData(userId: string) {
                 // useful for search/verification even when an image exists.
                 description: link.evidence.description,
                 imageDataUrl,
+                tableHtml,
               };
             }),
           );
