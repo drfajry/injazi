@@ -92,6 +92,8 @@ int _complete = 0;
 int _needsSupport = 0;
 int _missing = 0;
 List<Evidence> _evidence = const [];
+int _evidencePage = 0;
+static const int _evidencePageSize = 10;
 
 @override
 void initState() {
@@ -125,6 +127,10 @@ _needsSupport = ((coverage['needsSupport'] ?? 0) as num).toInt();
 _missing = ((coverage['missing'] ?? 0) as num).toInt();
 _evidence = evidence;
 _loading = false;
+// Clamp the current page in case the list shrank (e.g. an item was
+// deleted from the last page) so we never show an empty page.
+final maxPage = (_evidence.length / _evidencePageSize).ceil() - 1;
+if (_evidencePage > maxPage) _evidencePage = maxPage < 0 ? 0 : maxPage;
 });
 } catch (e) {
 if (!mounted) return;
@@ -251,26 +257,55 @@ style: TextStyle(height: 1.5, fontWeight: FontWeight.w600),
 ),
 ),
 )
-else
-...(_evidence.map(
-(evidence) => Padding(
-padding: const EdgeInsets.only(bottom: 8),
-child: EvidenceTile(
-evidence: evidence,
-api: widget.api,
-onApprove: () async {
-await widget.api.approveEvidence(evidence.id);
-await _load();
-},
-onReject: () async {
-await widget.api.rejectEvidence(evidence.id);
-await _load();
-},
-onLinked: _load,
-onDeleted: _load,
-),
-),
-)),
+else ...[
+  ...(_evidence
+      .skip(_evidencePage * _evidencePageSize)
+      .take(_evidencePageSize)
+      .map(
+        (evidence) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: EvidenceTile(
+            evidence: evidence,
+            api: widget.api,
+            onApprove: () async {
+              await widget.api.approveEvidence(evidence.id);
+              await _load();
+            },
+            onReject: () async {
+              await widget.api.rejectEvidence(evidence.id);
+              await _load();
+            },
+            onLinked: _load,
+            onDeleted: _load,
+          ),
+        ),
+      )),
+  if (_evidence.length > _evidencePageSize)
+    Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            onPressed: _evidencePage > 0
+                ? () => setState(() => _evidencePage--)
+                : null,
+            icon: const Icon(Icons.chevron_right),
+          ),
+          Text(
+            'صفحة ${_evidencePage + 1} من ${(_evidence.length / _evidencePageSize).ceil()}',
+            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+          ),
+          IconButton(
+            onPressed: (_evidencePage + 1) * _evidencePageSize < _evidence.length
+                ? () => setState(() => _evidencePage++)
+                : null,
+            icon: const Icon(Icons.chevron_left),
+          ),
+        ],
+      ),
+    ),
+],
 ],
 ],
 ),
