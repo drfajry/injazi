@@ -290,7 +290,7 @@ else ...[
             onPressed: _evidencePage > 0
                 ? () => setState(() => _evidencePage--)
                 : null,
-            icon: const Icon(Icons.chevron_right),
+            icon: const Icon(Icons.chevron_left),
           ),
           Text(
             'صفحة ${_evidencePage + 1} من ${(_evidence.length / _evidencePageSize).ceil()}',
@@ -300,7 +300,7 @@ else ...[
             onPressed: (_evidencePage + 1) * _evidencePageSize < _evidence.length
                 ? () => setState(() => _evidencePage++)
                 : null,
-            icon: const Icon(Icons.chevron_left),
+            icon: const Icon(Icons.chevron_right),
           ),
         ],
       ),
