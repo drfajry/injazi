@@ -23,6 +23,12 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   },
+  // Without this, browsers re-run the CORS "preflight" (OPTIONS) check
+  // before EVERY request instead of caching the result — each preflight
+  // round-trip was adding ~500ms on top of every API call, which is what
+  // made the app feel persistently slow even though actual data transfer
+  // was fast. 24 hours is the max most browsers will honor anyway.
+  maxAge: 86400,
 }));
 app.use(express.json({ limit: '2mb' }));
 
