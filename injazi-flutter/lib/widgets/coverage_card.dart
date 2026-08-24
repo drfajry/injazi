@@ -14,14 +14,14 @@ class CoverageCard extends StatelessWidget {
     required this.missing,
   });
 
-  // Coverage-level color coding: red below 35%, yellow/amber 35–90%, green
-  // above 90% — a quick visual read of how far along the portfolio is,
-  // without needing to read the number itself.
-  (Color, Color) get _gradientColors {
+  // Coverage-level color coding for the progress bar fill: red below 35%,
+  // amber 35–89.9%, green from 90% and up — a quick visual read of how far
+  // along the portfolio is, without needing to read the number itself.
+  Color get _barColor {
     final percent = value * 100;
-    if (percent < 35) return (const Color(0xFFDC2626), const Color(0xFF991B1B)); // red
-    if (percent < 90) return (const Color(0xFFD97706), const Color(0xFF92400E)); // amber
-    return (const Color(0xFF15803D), const Color(0xFF14532D)); // green
+    if (percent < 35) return const Color(0xFFEF4444); // red
+    if (percent < 90) return const Color(0xFFF59E0B); // amber
+    return const Color(0xFF4ADE80); // green
   }
 
   @override
@@ -32,15 +32,17 @@ class CoverageCard extends StatelessWidget {
     // progress happened at all, even when evidence has been matched.
     final percent = value * 100;
     final percentLabel = percent < 10 ? percent.toStringAsFixed(1) : percent.round().toString();
-    final (startColor, endColor) = _gradientColors;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
-          colors: [startColor, endColor],
+          colors: [
+            Color(0xFF0F766E),
+            Color(0xFF115E59),
+          ],
         ),
         borderRadius: BorderRadius.circular(24),
       ),
@@ -88,9 +90,7 @@ class CoverageCard extends StatelessWidget {
               value: value,
               minHeight: 9,
               backgroundColor: Colors.white24,
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                Colors.white,
-              ),
+              valueColor: AlwaysStoppedAnimation<Color>(_barColor),
             ),
           ),
           const SizedBox(height: 18),

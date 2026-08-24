@@ -4,16 +4,6 @@ import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 import '../utils/file_preview_web.dart';
 
-// Same red/amber/green coverage-level thresholds as CoverageCard on the
-// dashboard — kept in sync so both screens read the portfolio's progress
-// the same way at a glance.
-List<Color> _coverageGradientColors(double value) {
-  final percent = value * 100;
-  if (percent < 35) return const [Color(0xFFDC2626), Color(0xFF991B1B)];
-  if (percent < 90) return const [Color(0xFFD97706), Color(0xFF92400E)];
-  return const [Color(0xFF15803D), Color(0xFF14532D)];
-}
-
 class PortfolioScreen extends StatefulWidget {
   final ApiService api;
 
@@ -229,10 +219,10 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
-                colors: _coverageGradientColors(_overallCoverage),
+                colors: [Color(0xFF0F766E), Color(0xFF115E59)],
               ),
               borderRadius: BorderRadius.circular(24),
             ),
