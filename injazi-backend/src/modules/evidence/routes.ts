@@ -13,7 +13,15 @@ evidenceRouter.get('/', requireAuth, async (req, res, next) => {
     const status = req.query.status ? z.nativeEnum(EvidenceStatus).parse(String(req.query.status)) : undefined;
     const evidence = await prisma.evidence.findMany({
       where: { userId, ...(status ? { status } : {}) },
-      include: { links: true, files: true, sourceItem: true },
+      include: {
+        links: true,
+        // Only the lightweight metadata — never the raw file bytes (`data`
+        // column). Pulling full binary content for every evidence item on
+        // every dashboard load was transferring tens of MB unnecessarily
+        // and was the main cause of the app feeling persistently slow.
+        files: { select: { id: true, mimeType: true, size: true, originalName: true, createdAt: true } },
+        sourceItem: true,
+      },
       orderBy: { updatedAt: 'desc' },
     });
     res.json({ data: evidence });

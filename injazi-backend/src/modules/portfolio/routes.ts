@@ -27,7 +27,16 @@ async function buildPortfolioData(userId: string) {
         include: {
           links: {
             where: { evidence: { userId, status: 'APPROVED' } },
-            include: { evidence: { include: { files: true } } },
+            include: {
+              evidence: {
+                include: {
+                  // Only the file's id is actually used here (to build a
+                  // "view file" link) — never pull the raw binary `data`
+                  // column on this frequently-called live view.
+                  files: { select: { id: true } },
+                },
+              },
+            },
             orderBy: { matchScore: 'desc' },
           },
         },
