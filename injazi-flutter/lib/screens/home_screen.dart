@@ -65,7 +65,7 @@ floatingActionButton: navigationShell.currentIndex == 0
 onPressed: () {},
 icon: const Icon(Icons.add),
 label: const Text(
-'\u0625\u0636\u0627\u0641\u0629 \u062f\u0644\u064a\u0644',
+'إضافة شاهد',
 ),
 )
 : null,
@@ -267,6 +267,7 @@ await widget.api.rejectEvidence(evidence.id);
 await _load();
 },
 onLinked: _load,
+onDeleted: _load,
 ),
 ),
 )),

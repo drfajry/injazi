@@ -10,6 +10,7 @@ class EvidenceTile extends StatefulWidget {
   final Future<void> Function()? onApprove;
   final Future<void> Function()? onReject;
   final VoidCallback? onLinked;
+  final VoidCallback? onDeleted;
 
   const EvidenceTile({
     super.key,
@@ -18,6 +19,7 @@ class EvidenceTile extends StatefulWidget {
     this.onApprove,
     this.onReject,
     this.onLinked,
+    this.onDeleted,
   });
 
   @override
@@ -51,6 +53,67 @@ class _EvidenceTileState extends State<EvidenceTile> {
     await _handle(() async {
       await widget.api.linkEvidenceToIndicator(widget.evidence.id, indicatorId);
       widget.onLinked?.call();
+    });
+  }
+
+  Future<void> _rename() async {
+    final controller = TextEditingController(text: widget.evidence.title);
+
+    final newTitle = await showDialog<String>(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          title: const Text('تعديل عنوان الشاهد'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(hintText: 'اكتب عنوانًا واضحًا يميّز هذا الشاهد'),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
+              child: const Text('حفظ'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (newTitle == null || newTitle.isEmpty) return;
+
+    await _handle(() async {
+      await widget.api.renameEvidence(widget.evidence.id, newTitle);
+      widget.onLinked?.call();
+    });
+  }
+
+  Future<void> _delete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          title: const Text('حذف الشاهد نهائيًا'),
+          content: const Text('سيُحذف هذا الشاهد وكل ارتباطاته بالمؤشرات نهائيًا. لا يمكن التراجع عن هذا الإجراء.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('حذف'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    await _handle(() async {
+      await widget.api.deleteEvidence(widget.evidence.id);
+      widget.onDeleted?.call();
     });
   }
 
@@ -120,14 +183,31 @@ class _EvidenceTileState extends State<EvidenceTile> {
               ],
             ),
             const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: _busy ? null : _linkToIndicator,
-                icon: const Icon(Icons.link_outlined, size: 16),
-                label: const Text('ربط بمؤشر', style: TextStyle(fontSize: 12)),
-                style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 30)),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: _busy ? null : _linkToIndicator,
+                    icon: const Icon(Icons.link_outlined, size: 16),
+                    label: const Text('ربط بمؤشر', style: TextStyle(fontSize: 12)),
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 30)),
+                  ),
+                ),
+                IconButton(
+                  onPressed: _busy ? null : _rename,
+                  icon: const Icon(Icons.drive_file_rename_outline, size: 17),
+                  color: const Color(0xFF64748B),
+                  tooltip: 'تعديل العنوان',
+                  visualDensity: VisualDensity.compact,
+                ),
+                IconButton(
+                  onPressed: _busy ? null : _delete,
+                  icon: const Icon(Icons.delete_outline, size: 17),
+                  color: const Color(0xFFDC2626),
+                  tooltip: 'حذف',
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
             ),
             if (needsReview) ...[
               const SizedBox(height: 10),
