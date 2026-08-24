@@ -83,16 +83,8 @@ class CoverageCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: LinearProgressIndicator(
-              value: value,
-              minHeight: 9,
-              backgroundColor: Colors.white24,
-              valueColor: AlwaysStoppedAnimation<Color>(_barColor),
-            ),
-          ),
+          const SizedBox(height: 14),
+          _CoverageBar(value: value, color: _barColor),
           const SizedBox(height: 18),
           Wrap(
             spacing: 10,
@@ -111,6 +103,76 @@ class CoverageCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CoverageBar extends StatelessWidget {
+  final double value;
+  final Color color;
+
+  const _CoverageBar({required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final clamped = value.clamp(0.0, 1.0);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+
+        return SizedBox(
+          height: 16,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.centerRight,
+            children: [
+              // Track
+              Container(
+                height: 12,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              // Fill — subtle in-hue gradient plus a soft glow instead of a
+              // flat single-color bar, so the edge doesn't look like an
+              // abrupt cut-off.
+              FractionallySizedBox(
+                alignment: Alignment.centerRight,
+                widthFactor: clamped,
+                child: Container(
+                  height: 12,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: LinearGradient(
+                      colors: [color.withValues(alpha: 0.75), color],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.45),
+                        blurRadius: 8,
+                        spreadRadius: 0.5,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Threshold markers at 35% and 90%, so the color transitions
+              // read as meaningful checkpoints rather than an arbitrary cut.
+              for (final threshold in [0.35, 0.90])
+                Positioned(
+                  right: (width * threshold).clamp(0.0, width) - 0.5,
+                  child: Container(
+                    width: 1,
+                    height: 16,
+                    color: Colors.white.withValues(alpha: 0.35),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
