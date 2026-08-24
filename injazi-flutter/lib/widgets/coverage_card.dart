@@ -14,6 +14,16 @@ class CoverageCard extends StatelessWidget {
     required this.missing,
   });
 
+  // Coverage-level color coding: red below 35%, yellow/amber 35–90%, green
+  // above 90% — a quick visual read of how far along the portfolio is,
+  // without needing to read the number itself.
+  (Color, Color) get _gradientColors {
+    final percent = value * 100;
+    if (percent < 35) return (const Color(0xFFDC2626), const Color(0xFF991B1B)); // red
+    if (percent < 90) return (const Color(0xFFD97706), const Color(0xFF92400E)); // amber
+    return (const Color(0xFF15803D), const Color(0xFF14532D)); // green
+  }
+
   @override
   Widget build(BuildContext context) {
     // Show one decimal place instead of rounding to a whole number: with
@@ -22,17 +32,15 @@ class CoverageCard extends StatelessWidget {
     // progress happened at all, even when evidence has been matched.
     final percent = value * 100;
     final percentLabel = percent < 10 ? percent.toStringAsFixed(1) : percent.round().toString();
+    final (startColor, endColor) = _gradientColors;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
-          colors: [
-            Color(0xFF0F766E),
-            Color(0xFF115E59),
-          ],
+          colors: [startColor, endColor],
         ),
         borderRadius: BorderRadius.circular(24),
       ),
@@ -40,7 +48,7 @@ class CoverageCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            '\u0646\u0633\u0628\u0629 \u0627\u0644\u062a\u063a\u0637\u064a\u0629',
+            'نسبة التغطية',
             style: TextStyle(
               color: Colors.white,
               fontSize: 16,
@@ -65,7 +73,7 @@ class CoverageCard extends StatelessWidget {
                   right: 8,
                 ),
                 child: Text(
-                  '\u0645\u0646 \u0627\u0644\u0645\u0644\u0641',
+                  'من الملف',
                   style: TextStyle(
                     color: Colors.white70,
                   ),
@@ -91,13 +99,13 @@ class CoverageCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               _Pill(
-                '$complete \u0645\u0643\u062a\u0645\u0644',
+                '$complete مكتمل',
               ),
               _Pill(
-                '$needsSupport \u0628\u062d\u0627\u062c\u0629 \u0644\u0644\u062f\u0639\u0645',
+                '$needsSupport بحاجة للدعم',
               ),
               _Pill(
-                '$missing \u0645\u0641\u0642\u0648\u062f',
+                '$missing مفقود',
               ),
             ],
           ),
