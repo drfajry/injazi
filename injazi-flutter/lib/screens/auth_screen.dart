@@ -2,6 +2,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../services/api_service.dart';
+import '../core/api_config.dart';
 
 class AuthScreen extends StatefulWidget {
   final VoidCallback onAuthenticated;
@@ -33,7 +34,7 @@ class _AuthScreenState extends State<AuthScreen> {
     isLogin = widget.initialIsLogin;
 
     api = ApiService(
-      baseUrl: 'https://injazi-backend-svxy.onrender.com',
+      baseUrl: kApiBaseUrl,
     );
   }
 

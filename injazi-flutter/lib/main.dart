@@ -13,10 +13,11 @@ import 'screens/reset_password_screen.dart';
 import 'screens/landing_screen.dart';
 import 'screens/profile_setup_screen.dart';
 import 'services/api_service.dart';
+import 'core/api_config.dart';
 
 class AppSession extends ChangeNotifier {
   final ApiService api = ApiService(
-    baseUrl: 'https://injazi-backend-svxy.onrender.com',
+    baseUrl: kApiBaseUrl,
   );
 
   bool ready = false;

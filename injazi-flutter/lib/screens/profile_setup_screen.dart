@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import '../core/api_config.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   final VoidCallback onCompleted;
@@ -35,7 +36,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     super.initState();
 
     api = ApiService(
-      baseUrl: 'https://injazi-backend-svxy.onrender.com',
+      baseUrl: kApiBaseUrl,
     );
   }
 

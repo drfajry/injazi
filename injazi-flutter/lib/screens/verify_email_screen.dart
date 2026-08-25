@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../services/api_service.dart';
+import '../core/api_config.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
   final String email;
@@ -27,7 +28,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   void initState() {
     super.initState();
     api = ApiService(
-      baseUrl: 'https://injazi-backend-svxy.onrender.com',
+      baseUrl: kApiBaseUrl,
     );
   }
 
