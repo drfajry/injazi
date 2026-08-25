@@ -19,3 +19,29 @@ export async function renderFirstPdfPageToImage(buffer: Buffer): Promise<string 
     return null;
   }
 }
+
+const MAX_FIXED_PAGE_PDF_PAGES = 15;
+
+/**
+ * Renders EVERY page of a PDF as a PNG image (base64), each. Used only for
+ * "fixed pages" (CV, schedule, etc.) — documents meant to be shown in full,
+ * unlike regular evidence where a single-page thumbnail is enough as a
+ * preview. Capped at a reasonable page count so a huge accidental upload
+ * doesn't blow up memory/export size.
+ */
+export async function renderAllPdfPagesToImages(buffer: Buffer): Promise<string[]> {
+  try {
+    const document = await pdf(buffer, { scale: 2 });
+    const images: string[] = [];
+
+    for await (const page of document) {
+      images.push(page.toString('base64'));
+      if (images.length >= MAX_FIXED_PAGE_PDF_PAGES) break;
+    }
+
+    return images;
+  } catch (error) {
+    console.error('PDF multi-page render failed:', error);
+    return [];
+  }
+}

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../../db/prisma.js';
 import { requireAuth, getAuthenticatedUserId } from '../auth/middleware.js';
 import { buildPortfolioExportHtml, buildPublicPortfolioHtml, buildPublicNotFoundHtml } from './export-html.js';
-import { renderFirstPdfPageToImage } from './pdf-render.js';
+import { renderFirstPdfPageToImage, renderAllPdfPagesToImages } from './pdf-render.js';
 import { renderExcelAsHtmlTable } from './excel-render.js';
 import { computeCoverageSummary } from '../coverage/coverage-engine.js';
 
@@ -83,14 +83,17 @@ async function buildPortfolioData(userId: string) {
   };
 }
 
-async function renderEvidenceForExport(evidence: {
-  id: string;
-  title: string;
-  type: string;
-  description: string | null;
-  files: { mimeType: string; data: Uint8Array | null }[];
-  metadata?: unknown;
-}) {
+async function renderEvidenceForExport(
+  evidence: {
+    id: string;
+    title: string;
+    type: string;
+    description: string | null;
+    files: { mimeType: string; data: Uint8Array | null }[];
+    metadata?: unknown;
+  },
+  options: { renderAllPdfPages?: boolean } = {},
+) {
   const file = evidence.files[0];
   const isImage = file?.mimeType?.startsWith('image/') ?? false;
   const isPdf = file?.mimeType === 'application/pdf';
@@ -99,13 +102,24 @@ async function renderEvidenceForExport(evidence: {
     file?.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
   let imageDataUrl: string | null = null;
+  let imageDataUrls: string[] | null = null;
   let tableHtml: string | null = null;
 
   if (isImage && file?.data) {
     imageDataUrl = `data:${file.mimeType};base64,${Buffer.from(file.data).toString('base64')}`;
   } else if (isPdf && file?.data) {
-    const rendered = await renderFirstPdfPageToImage(Buffer.from(file.data));
-    if (rendered) imageDataUrl = `data:image/png;base64,${rendered}`;
+    if (options.renderAllPdfPages) {
+      // Fixed pages (CV, schedule, etc.) are meant to be shown as complete
+      // documents, not a single-page preview — render every page at full
+      // size rather than just the first.
+      const rendered = await renderAllPdfPagesToImages(Buffer.from(file.data));
+      if (rendered.length > 0) {
+        imageDataUrls = rendered.map((page) => `data:image/png;base64,${page}`);
+      }
+    } else {
+      const rendered = await renderFirstPdfPageToImage(Buffer.from(file.data));
+      if (rendered) imageDataUrl = `data:image/png;base64,${rendered}`;
+    }
   } else if (isExcel && file?.data) {
     tableHtml = renderExcelAsHtmlTable(Buffer.from(file.data));
   }
@@ -118,6 +132,7 @@ async function renderEvidenceForExport(evidence: {
     type: evidence.type,
     description: evidence.description,
     imageDataUrl,
+    imageDataUrls,
     tableHtml,
     label: metadata?.label ?? null,
     fixedPageType: metadata?.fixedPageType ?? null,
@@ -141,7 +156,11 @@ async function buildPortfolioExportData(userId: string) {
     orderBy: { createdAt: 'asc' },
   });
 
-  const generalInfo = (await Promise.all(generalInfoEvidence.map(renderEvidenceForExport))).sort((a, b) => {
+  const generalInfo = (
+    await Promise.all(
+      generalInfoEvidence.map((evidence) => renderEvidenceForExport(evidence, { renderAllPdfPages: true })),
+    )
+  ).sort((a, b) => {
     const aIndex = FIXED_PAGE_ORDER.indexOf(a.fixedPageType ?? '');
     const bIndex = FIXED_PAGE_ORDER.indexOf(b.fixedPageType ?? '');
     return (aIndex === -1 ? FIXED_PAGE_ORDER.length : aIndex) - (bIndex === -1 ? FIXED_PAGE_ORDER.length : bIndex);

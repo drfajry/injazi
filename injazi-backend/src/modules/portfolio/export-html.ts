@@ -5,6 +5,7 @@ type ExportEvidence = {
   type: string;
   description: string | null;
   imageDataUrl: string | null;
+  imageDataUrls?: string[] | null;
   tableHtml: string | null;
   label?: string | null;
 };
@@ -165,11 +166,27 @@ export function buildPortfolioExportHtml(data: ExportData): string {
 
   const generalInfoHtml = data.generalInfo
     .map((e) => {
-      const image = e.imageDataUrl
-        ? `<img class="evidence-image" src="${e.imageDataUrl}" alt="${escapeHtml(e.title)}" />`
+      // Multi-page PDFs (e.g. a 2-page CV) render every page at full size,
+      // each as its own page — previously only the first page was shown,
+      // squeezed into a small thumbnail meant for quick-preview evidence,
+      // not a complete standalone document.
+      const multiPageImages = e.imageDataUrls?.length
+        ? e.imageDataUrls
+            .map(
+              (url, index) => `
+                <div class="fixed-page-image-wrap">
+                  <img class="fixed-page-image" src="${url}" alt="${escapeHtml(e.title)} — ${index + 1}" />
+                </div>
+              `,
+            )
+            .join('')
         : '';
-      const table = !image && e.tableHtml ? `<div class="evidence-table-wrap">${e.tableHtml}</div>` : '';
-      const excerpt = !image && !table && e.description
+
+      const image = !multiPageImages && e.imageDataUrl
+        ? `<div class="fixed-page-image-wrap"><img class="fixed-page-image" src="${e.imageDataUrl}" alt="${escapeHtml(e.title)}" /></div>`
+        : '';
+      const table = !multiPageImages && !image && e.tableHtml ? `<div class="evidence-table-wrap">${e.tableHtml}</div>` : '';
+      const excerpt = !multiPageImages && !image && !table && e.description
         ? `<blockquote class="evidence-excerpt">${escapeHtml(e.description.slice(0, 600))}${e.description.length > 600 ? '…' : ''}</blockquote>`
         : '';
 
@@ -181,6 +198,7 @@ export function buildPortfolioExportHtml(data: ExportData): string {
         <section class="criterion-section general-info-section">
           <div class="criterion-pill">${escapeHtml(e.label ?? e.title)}</div>
           <div class="evidence-item">
+            ${multiPageImages}
             ${image}
             ${table}
             ${excerpt}
@@ -398,6 +416,21 @@ export function buildPortfolioExportHtml(data: ExportData): string {
     border: 1px solid #E2E8F0;
     margin: 6px 0;
     display: block;
+  }
+  /* Fixed pages (CV, schedule, etc.) show at full document size, not the
+     small evidence-preview thumbnail — each page gets its own printed
+     page, matching how the original document actually looks. */
+  .fixed-page-image-wrap {
+    page-break-before: always;
+    padding-top: 10px;
+  }
+  .fixed-page-image-wrap:first-child { page-break-before: auto; }
+  .fixed-page-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 6px;
+    border: 1px solid #E2E8F0;
   }
   .evidence-table-wrap {
     margin: 6px 0;
