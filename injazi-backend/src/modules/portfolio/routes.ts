@@ -89,6 +89,7 @@ async function renderEvidenceForExport(evidence: {
   type: string;
   description: string | null;
   files: { mimeType: string; data: Uint8Array | null }[];
+  metadata?: unknown;
 }) {
   const file = evidence.files[0];
   const isImage = file?.mimeType?.startsWith('image/') ?? false;
@@ -109,6 +110,8 @@ async function renderEvidenceForExport(evidence: {
     tableHtml = renderExcelAsHtmlTable(Buffer.from(file.data));
   }
 
+  const metadata = evidence.metadata as { label?: string; fixedPageType?: string } | null;
+
   return {
     id: evidence.id,
     title: evidence.title,
@@ -116,8 +119,16 @@ async function renderEvidenceForExport(evidence: {
     description: evidence.description,
     imageDataUrl,
     tableHtml,
+    label: metadata?.label ?? null,
+    fixedPageType: metadata?.fixedPageType ?? null,
   };
 }
+
+// Display order for the prefatory "fixed pages" section — matches the
+// order a printed teacher portfolio conventionally uses (identity first,
+// then intent/goals, then logistics). Anything not in this list (or tagged
+// "OTHER") sorts to the end, in upload order.
+const FIXED_PAGE_ORDER = ['CV', 'VISION_MISSION', 'SCHEDULE', 'STUDENTS', 'OTHER'];
 
 async function buildPortfolioExportData(userId: string) {
   const generalInfoEvidence = await prisma.evidence.findMany({
@@ -130,7 +141,11 @@ async function buildPortfolioExportData(userId: string) {
     orderBy: { createdAt: 'asc' },
   });
 
-  const generalInfo = await Promise.all(generalInfoEvidence.map(renderEvidenceForExport));
+  const generalInfo = (await Promise.all(generalInfoEvidence.map(renderEvidenceForExport))).sort((a, b) => {
+    const aIndex = FIXED_PAGE_ORDER.indexOf(a.fixedPageType ?? '');
+    const bIndex = FIXED_PAGE_ORDER.indexOf(b.fixedPageType ?? '');
+    return (aIndex === -1 ? FIXED_PAGE_ORDER.length : aIndex) - (bIndex === -1 ? FIXED_PAGE_ORDER.length : bIndex);
+  });
 
   const criteria = await prisma.criterion.findMany({
     include: {

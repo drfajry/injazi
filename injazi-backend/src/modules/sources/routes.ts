@@ -72,6 +72,17 @@ async function getOrCreateManualSource(userId: string) {
   });
 }
 
+// Fixed, well-known prefatory page types the teacher can attach as
+// ready-made files (CV, schedule, etc.) — kept as a small closed list so
+// the export can order and label them consistently.
+const FIXED_PAGE_LABELS: Record<string, string> = {
+  CV: 'السيرة الذاتية',
+  VISION_MISSION: 'الرؤية والرسالة والأهداف',
+  SCHEDULE: 'الجدول الدراسي',
+  STUDENTS: 'بيانات الطلاب',
+  OTHER: 'أخرى',
+};
+
 sourcesRouter.post('/upload', requireAuth, upload.single('file'), async (req, res, next) => {
   try {
     const userId = getAuthenticatedUserId(req);
@@ -81,9 +92,16 @@ sourcesRouter.post('/upload', requireAuth, upload.single('file'), async (req, re
       return res.status(400).json({ error: 'No file provided. Send multipart/form-data with a "file" field.' });
     }
 
+    // Optional: mark this upload as a ready-made "fixed page" (CV, schedule,
+    // etc.) instead of running it through indicator matching. These appear
+    // at the very start of the exported portfolio, before the 11 criteria.
+    const fixedPageType = typeof req.body?.fixedPageType === 'string' ? req.body.fixedPageType : undefined;
+    const isFixedPage = fixedPageType !== undefined && fixedPageType in FIXED_PAGE_LABELS;
+    const fixedPageLabel = isFixedPage ? FIXED_PAGE_LABELS[fixedPageType] : undefined;
+
     const title = typeof req.body?.title === 'string' && req.body.title.trim().length > 0
       ? req.body.title.trim()
-      : file.originalname;
+      : (fixedPageLabel ?? file.originalname);
 
     const source = await getOrCreateManualSource(userId);
 
@@ -107,6 +125,8 @@ sourcesRouter.post('/upload', requireAuth, upload.single('file'), async (req, re
       type: guessEvidenceType(file.mimetype),
       confidence: 0.95, // manual, user-provided upload — high confidence
       sourceItemId: sourceItem.id,
+      metadata: isFixedPage ? { category: 'GENERAL_INFO', label: fixedPageLabel, fixedPageType } : undefined,
+      skipAutoMatch: isFixedPage,
     });
 
     const evidenceFile = await prisma.evidenceFile.create({

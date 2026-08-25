@@ -250,6 +250,126 @@ class _SourcesScreenState extends State<SourcesScreen> {
     );
   }
 
+  Future<void> _addFixedPage() async {
+    const options = {
+      'CV': 'السيرة الذاتية',
+      'VISION_MISSION': 'الرؤية والرسالة والأهداف',
+      'SCHEDULE': 'الجدول الدراسي',
+      'STUDENTS': 'بيانات الطلاب',
+      'OTHER': 'أخرى',
+    };
+
+    // Written directly rather than uploaded as a file.
+    const textEntryTypes = {'VISION_MISSION'};
+
+    final chosenType = await showDialog<String>(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: SimpleDialog(
+          title: const Text('نوع الصفحة الثابتة'),
+          children: options.entries
+              .map(
+                (entry) => SimpleDialogOption(
+                  onPressed: () => Navigator.pop(context, entry.key),
+                  child: Text(entry.value),
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
+
+    if (chosenType == null || !mounted) return;
+
+    if (textEntryTypes.contains(chosenType)) {
+      await _addFixedPageAsText(chosenType, options[chosenType]!);
+    } else {
+      await _addFixedPageAsFile(chosenType, options[chosenType]!);
+    }
+  }
+
+  Future<void> _addFixedPageAsText(String fixedPageType, String label) async {
+    final controller = TextEditingController();
+
+    final text = await showDialog<String>(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          title: Text(label),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: TextField(
+              controller: controller,
+              autofocus: true,
+              maxLines: 10,
+              decoration: InputDecoration(hintText: 'اكتب $label هنا...'),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
+              child: const Text('حفظ'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (text == null || text.isEmpty || !mounted) return;
+
+    setState(() => _uploading = true);
+
+    try {
+      await widget.api.addFixedPageText(fixedPageType: fixedPageType, label: label, text: text);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تمت إضافة "$label" لمقدمة ملف الإنجاز.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذّر الإضافة: ${e.toString().replaceFirst('Exception: ', '')}')),
+      );
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  Future<void> _addFixedPageAsFile(String fixedPageType, String label) async {
+    final result = await FilePicker.platform.pickFiles(allowMultiple: false, withData: true);
+    final picked = result?.files.single;
+    final bytes = picked?.bytes;
+
+    if (picked == null || bytes == null || !mounted) return;
+
+    setState(() => _uploading = true);
+
+    try {
+      await widget.api.uploadFixedPage(
+        bytes: bytes,
+        filename: picked.name,
+        mimeType: _guessMimeType(picked.extension),
+        fixedPageType: fixedPageType,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تمت إضافة "$label" لمقدمة ملف الإنجاز.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذّر الإضافة: ${e.toString().replaceFirst('Exception: ', '')}')),
+      );
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
   Future<void> _addUrl() async {
     final controller = TextEditingController();
 
@@ -374,6 +494,8 @@ class _SourcesScreenState extends State<SourcesScreen> {
             _SourceCard(icon: Icons.camera_alt_outlined, title: 'التقاط صورة', subtitle: 'صوّر شهادة أو مستندًا مباشرة بالكاميرا', button: 'التقاط', onTap: _uploading ? null : _capture),
             const SizedBox(height: 12),
             _SourceCard(icon: Icons.link_outlined, title: 'إضافة من رابط', subtitle: 'الصق رابط مقال أو تقرير وسنستخرج محتواه تلقائيًا', button: 'إضافة رابط', onTap: _uploading ? null : _addUrl),
+            const SizedBox(height: 12),
+            _SourceCard(icon: Icons.badge_outlined, title: 'صفحات ثابتة', subtitle: 'ارفع ملفات جاهزة (سيرة ذاتية، جدول، رؤية ورسالة) تظهر بمقدمة ملف الإنجاز', button: 'إضافة صفحة ثابتة', onTap: _uploading ? null : _addFixedPage),
           ],
         ),
         if (_uploading)

@@ -362,6 +362,65 @@ class ApiService {
     );
   }
 
+  Future<void> addFixedPageText({
+    required String fixedPageType,
+    required String label,
+    required String text,
+  }) async {
+    final token = await getAccessToken();
+
+    final response = await _client.post(
+      Uri.parse('$baseUrl/evidence/manual'),
+      headers: _authorizedHeaders(token),
+      body: jsonEncode({
+        'title': label,
+        'description': text,
+        'fixedPageType': fixedPageType,
+      }),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessage(response.body) ?? 'Failed to add page';
+      throw Exception(message);
+    }
+  }
+
+  Future<Map<String, dynamic>> uploadFixedPage({
+    required List<int> bytes,
+    required String filename,
+    String? mimeType,
+    required String fixedPageType,
+  }) async {
+    final token = await getAccessToken();
+
+    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/sources/upload'));
+
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    request.fields['fixedPageType'] = fixedPageType;
+
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'file',
+        bytes,
+        filename: filename,
+        contentType: mimeType != null ? MediaType.parse(mimeType) : null,
+      ),
+    );
+
+    final streamedResponse = await _client.send(request);
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessage(response.body) ?? 'Upload failed';
+      throw Exception(message);
+    }
+
+    return Map<String, dynamic>.from(jsonDecode(response.body));
+  }
+
   Future<Map<String, dynamic>> uploadFile({
     required List<int> bytes,
     required String filename,
