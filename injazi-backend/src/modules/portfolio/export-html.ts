@@ -87,7 +87,7 @@ export function buildPublicPortfolioHtml(data: {
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>ملف إنجاز — ${escapeHtml(data.teacherName)}</title>
 <style>
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body {
     font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
     background: #F8FAFC;
@@ -324,7 +324,17 @@ export function buildPortfolioExportHtml(data: ExportData): string {
 <title>ملف الإنجاز — ${escapeHtml(data.teacherName)}</title>
 <style>
   @page { size: A4; margin: 0; }
-  * { box-sizing: border-box; }
+  * {
+    box-sizing: border-box;
+    /* Without this, Chrome (and most browsers) silently strip background
+       colors/gradients when printing to save ink — every teal/navy
+       gradient (letterhead, criterion pills, evidence badges, the
+       vision/mission boxes) would render correctly on screen but come out
+       blank/transparent in the actual printed PDF. This forces them to
+       print exactly as shown. */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
   body {
     font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
     color: #1E293B;
