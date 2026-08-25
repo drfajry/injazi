@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { prisma } from '../../db/prisma.js';
 import { createEvidenceCandidate } from './evidence-engine.js';
 import { requireAuth, getAuthenticatedUserId } from '../auth/middleware.js';
+import { FIXED_PAGE_LABELS, isValidFixedPageType } from '../../shared/fixed-pages.js';
 
 export const evidenceRouter = Router();
 
@@ -49,17 +50,28 @@ evidenceRouter.post('/manual', requireAuth, async (req, res, next) => {
       // any of the 53 indicators — visible to school leadership context,
       // not tied to a specific performance criterion.
       category: z.enum(['GENERAL_INFO']).optional(),
+      // Typed-text version of a fixed prefatory page (e.g. Vision/Mission,
+      // written directly rather than uploaded as a file). If present, this
+      // implies category GENERAL_INFO and supplies its display label —
+      // the caller doesn't need to also pass `category` separately.
+      fixedPageType: z.string().optional(),
     }).parse(req.body);
 
-    const { indicatorId, category, ...candidateFields } = body;
+    const { indicatorId, category, fixedPageType, ...candidateFields } = body;
+
+    const isFixedPage = isValidFixedPageType(fixedPageType);
+    const fixedPageLabel = isFixedPage ? FIXED_PAGE_LABELS[fixedPageType] : undefined;
+    const isGeneralInfo = Boolean(category) || isFixedPage;
 
     const evidence = await createEvidenceCandidate({
       ...candidateFields,
       userId,
-      metadata: category ? { category } : undefined,
+      metadata: isGeneralInfo
+        ? { category: 'GENERAL_INFO', ...(isFixedPage ? { label: fixedPageLabel, fixedPageType } : {}) }
+        : undefined,
       // Skip the automatic matcher when we already have a known-correct
       // indicator or this is general info with no indicator to match.
-      skipAutoMatch: Boolean(indicatorId) || Boolean(category),
+      skipAutoMatch: Boolean(indicatorId) || isGeneralInfo,
     });
 
     if (indicatorId) {

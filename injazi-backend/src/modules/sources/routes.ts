@@ -18,6 +18,7 @@ import {
   type GoogleTokens,
 } from './google-oauth.js';
 import { env } from '../../config/env.js';
+import { FIXED_PAGE_LABELS } from '../../shared/fixed-pages.js';
 
 export const sourcesRouter = Router();
 
@@ -75,13 +76,6 @@ async function getOrCreateManualSource(userId: string) {
 // Fixed, well-known prefatory page types the teacher can attach as
 // ready-made files (CV, schedule, etc.) — kept as a small closed list so
 // the export can order and label them consistently.
-const FIXED_PAGE_LABELS: Record<string, string> = {
-  CV: 'السيرة الذاتية',
-  VISION_MISSION: 'الرؤية والرسالة والأهداف',
-  SCHEDULE: 'الجدول الدراسي',
-  STUDENTS: 'بيانات الطلاب',
-  OTHER: 'أخرى',
-};
 
 sourcesRouter.post('/upload', requireAuth, upload.single('file'), async (req, res, next) => {
   try {
