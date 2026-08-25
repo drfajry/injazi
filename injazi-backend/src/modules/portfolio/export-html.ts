@@ -8,6 +8,7 @@ type ExportEvidence = {
   imageDataUrls?: string[] | null;
   tableHtml: string | null;
   label?: string | null;
+  fixedPageType?: string | null;
 };
 
 type ExportIndicator = {
@@ -166,6 +167,46 @@ export function buildPortfolioExportHtml(data: ExportData): string {
 
   const generalInfoHtml = data.generalInfo
     .map((e) => {
+      // Vision/Mission/Goals is stored as structured JSON (three separate
+      // fields) so it can render as three distinct labeled boxes on one
+      // page — matching the reference template — instead of one
+      // undifferentiated paragraph of text.
+      if (e.fixedPageType === 'VISION_MISSION') {
+        let parsed: { vision?: string; mission?: string; goals?: string } | null = null;
+        try {
+          parsed = e.description ? JSON.parse(e.description) : null;
+        } catch {
+          parsed = null;
+        }
+
+        if (parsed) {
+          const boxes = [
+            { label: 'الرؤية', value: parsed.vision },
+            { label: 'الرسالة', value: parsed.mission },
+            { label: 'الأهداف', value: parsed.goals },
+          ]
+            .filter((box) => box.value && box.value.trim().length > 0)
+            .map(
+              (box) => `
+                <div class="vmg-box">
+                  <div class="vmg-box-title">${escapeHtml(box.label)}</div>
+                  <div class="vmg-box-body">${escapeHtml(box.value!)}</div>
+                </div>
+              `,
+            )
+            .join('');
+
+          return `
+            <section class="criterion-section general-info-section">
+              <div class="criterion-pill">${escapeHtml(e.label ?? e.title)}</div>
+              <div class="vmg-wrap">${boxes}</div>
+            </section>
+          `;
+        }
+        // Falls through to the generic renderer below if parsing failed
+        // (e.g. an older entry saved before this structured format).
+      }
+
       // Multi-page PDFs (e.g. a 2-page CV) render every page at full size,
       // each as its own page — previously only the first page was shown,
       // squeezed into a small thumbnail meant for quick-preview evidence,
@@ -431,6 +472,23 @@ export function buildPortfolioExportHtml(data: ExportData): string {
     display: block;
     border-radius: 6px;
     border: 1px solid #E2E8F0;
+  }
+  .vmg-wrap { display: flex; flex-direction: column; gap: 14px; margin-top: 6px; }
+  .vmg-box { border: 1px solid #E2E8F0; border-radius: 10px; overflow: hidden; }
+  .vmg-box-title {
+    background: linear-gradient(90deg, #359B77, #093B64);
+    color: white;
+    font-weight: 800;
+    font-size: 13px;
+    padding: 8px 16px;
+  }
+  .vmg-box-body {
+    padding: 14px 16px;
+    font-size: 12.5px;
+    color: #334155;
+    line-height: 1.8;
+    min-height: 60px;
+    white-space: pre-wrap;
   }
   .evidence-table-wrap {
     margin: 6px 0;

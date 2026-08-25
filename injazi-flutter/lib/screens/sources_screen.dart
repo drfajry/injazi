@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
@@ -290,6 +292,11 @@ class _SourcesScreenState extends State<SourcesScreen> {
   }
 
   Future<void> _addFixedPageAsText(String fixedPageType, String label) async {
+    if (fixedPageType == 'VISION_MISSION') {
+      await _addVisionMissionGoals();
+      return;
+    }
+
     final controller = TextEditingController();
 
     final text = await showDialog<String>(
@@ -328,6 +335,100 @@ class _SourcesScreenState extends State<SourcesScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('تمت إضافة "$label" لمقدمة ملف الإنجاز.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذّر الإضافة: ${e.toString().replaceFirst('Exception: ', '')}')),
+      );
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  Future<void> _addVisionMissionGoals() async {
+    final visionController = TextEditingController();
+    final missionController = TextEditingController();
+    final goalsController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          title: const Text('الرؤية والرسالة والأهداف'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('الرؤية', style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: visionController,
+                    autofocus: true,
+                    maxLines: 3,
+                    decoration: const InputDecoration(hintText: 'اكتب الرؤية هنا...'),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('الرسالة', style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: missionController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(hintText: 'اكتب الرسالة هنا...'),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('الأهداف', style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: goalsController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(hintText: 'اكتب الأهداف هنا...'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('حفظ')),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final vision = visionController.text.trim();
+    final mission = missionController.text.trim();
+    final goals = goalsController.text.trim();
+
+    if (vision.isEmpty && mission.isEmpty && goals.isEmpty) return;
+
+    // Stored as structured JSON (not plain text) so the export can render
+    // each as its own labeled box on one page, instead of one long
+    // undifferentiated paragraph.
+    final structuredText = jsonEncode({
+      'vision': vision,
+      'mission': mission,
+      'goals': goals,
+    });
+
+    setState(() => _uploading = true);
+
+    try {
+      await widget.api.addFixedPageText(
+        fixedPageType: 'VISION_MISSION',
+        label: 'الرؤية والرسالة والأهداف',
+        text: structuredText,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تمت إضافة "الرؤية والرسالة والأهداف" لمقدمة ملف الإنجاز.')),
       );
     } catch (e) {
       if (!mounted) return;
