@@ -6,6 +6,7 @@ type ExportEvidence = {
   description: string | null;
   imageDataUrl: string | null;
   tableHtml: string | null;
+  label?: string | null;
 };
 
 type ExportIndicator = {
@@ -162,34 +163,32 @@ export function buildPortfolioExportHtml(data: ExportData): string {
     ? `<img class="ministry-logo" src="data:image/png;base64,${ministryLogo}" alt="شعار وزارة التعليم" />`
     : `<div class="logo-placeholder">شعار<br/>الوزارة</div>`;
 
-  const generalInfoHtml = data.generalInfo.length
-    ? `
-      <section class="criterion-section general-info-section">
-        <div class="criterion-pill">بيانات عامة</div>
-        <div class="criterion-meta">الجدول الدراسي وبيانات الفصول — لإفادة الإدارة والمشرفين</div>
-        ${data.generalInfo
-          .map((e) => {
-            const image = e.imageDataUrl
-              ? `<img class="evidence-image" src="${e.imageDataUrl}" alt="${escapeHtml(e.title)}" />`
-              : '';
-            const table = !image && e.tableHtml ? `<div class="evidence-table-wrap">${e.tableHtml}</div>` : '';
-            const excerpt = !image && !table && e.description
-              ? `<blockquote class="evidence-excerpt">${escapeHtml(e.description.slice(0, 600))}${e.description.length > 600 ? '…' : ''}</blockquote>`
-              : '';
+  const generalInfoHtml = data.generalInfo
+    .map((e) => {
+      const image = e.imageDataUrl
+        ? `<img class="evidence-image" src="${e.imageDataUrl}" alt="${escapeHtml(e.title)}" />`
+        : '';
+      const table = !image && e.tableHtml ? `<div class="evidence-table-wrap">${e.tableHtml}</div>` : '';
+      const excerpt = !image && !table && e.description
+        ? `<blockquote class="evidence-excerpt">${escapeHtml(e.description.slice(0, 600))}${e.description.length > 600 ? '…' : ''}</blockquote>`
+        : '';
 
-            return `
-              <div class="evidence-item">
-                <div class="evidence-title">📎 ${escapeHtml(e.title)}</div>
-                ${image}
-                ${table}
-                ${excerpt}
-              </div>
-            `;
-          })
-          .join('')}
-      </section>
-    `
-    : '';
+      // Each fixed page (CV, schedule, etc.) gets its own labeled section
+      // and its own page, rather than being merged under one generic
+      // "بيانات عامة" heading — matches how a printed portfolio separates
+      // these into distinct pages.
+      return `
+        <section class="criterion-section general-info-section">
+          <div class="criterion-pill">${escapeHtml(e.label ?? e.title)}</div>
+          <div class="evidence-item">
+            ${image}
+            ${table}
+            ${excerpt}
+          </div>
+        </section>
+      `;
+    })
+    .join('');
 
   const sectionsHtml = data.sections
     .map((section) => {
@@ -197,11 +196,16 @@ export function buildPortfolioExportHtml(data: ExportData): string {
         ? Math.round((section.coveredIndicators / section.totalIndicators) * 100)
         : 0;
 
-      const indicatorsHtml = section.indicators
+      const coveredIndicators = section.indicators.filter((indicator) => indicator.evidence.length > 0);
+
+      // Skip criteria with zero covered indicators entirely — an empty
+      // section with nothing but "no evidence yet" lines under every
+      // indicator was the main source of large blank pages in the export.
+      if (coveredIndicators.length === 0) return '';
+
+      const indicatorsHtml = coveredIndicators
         .map((indicator) => {
-          const covered = indicator.evidence.length > 0;
-          const evidenceHtml = covered
-            ? `<div class="evidence-badge">الشواهد</div>` + indicator.evidence
+          const evidenceHtml = `<div class="evidence-badge">الشواهد</div>` + indicator.evidence
                 .map((e) => {
                   const image = e.imageDataUrl
                     ? `<img class="evidence-image" src="${e.imageDataUrl}" alt="${escapeHtml(e.title)}" />`
@@ -230,13 +234,12 @@ export function buildPortfolioExportHtml(data: ExportData): string {
                     </div>
                   `;
                 })
-                .join('')
-            : `<p class="no-evidence">لا يوجد شاهد مرتبط بعد</p>`;
+                .join('');
 
           return `
-            <div class="indicator ${covered ? 'covered' : 'missing'}">
+            <div class="indicator covered">
               <div class="indicator-header">
-                <span class="status-dot">${covered ? '✓' : '○'}</span>
+                <span class="status-dot">✓</span>
                 <span class="indicator-name">${escapeHtml(indicator.name)}</span>
               </div>
               ${evidenceHtml}
@@ -344,20 +347,21 @@ export function buildPortfolioExportHtml(data: ExportData): string {
   .cover-date { color: #94A3B8; font-size: 11px; margin-top: 16px; }
 
   /* Criterion sections */
-  .criterion-section { margin-bottom: 30px; page-break-inside: avoid; position: relative; z-index: 1; }
+  .criterion-section { margin-bottom: 30px; page-break-before: always; page-break-inside: avoid; position: relative; z-index: 1; }
+  .criterion-section:first-of-type { page-break-before: auto; }
   .criterion-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
+    display: block;
+    width: 100%;
     background: linear-gradient(90deg, #359B77, #093B64);
     color: white;
-    border-radius: 999px;
-    padding: 10px 22px;
-    font-size: 14px;
+    border-radius: 12px;
+    padding: 16px 22px;
+    font-size: 19px;
     font-weight: 800;
     margin-bottom: 4px;
+    box-shadow: 0 4px 14px rgba(9, 59, 100, 0.25);
   }
-  .criterion-meta { font-size: 11px; color: #64748B; margin: 6px 4px 12px; }
+  .criterion-meta { font-size: 12px; color: #64748B; margin: 8px 4px 16px; font-weight: 600; }
 
   .indicator { padding: 10px 6px; border-bottom: 1px solid #EEF2F6; page-break-inside: avoid; }
   .indicator-header { display: flex; align-items: baseline; gap: 8px; }
