@@ -327,7 +327,7 @@ export function buildPortfolioExportHtml(data: ExportData): string {
           return `
             <div class="indicator covered">
               <div class="indicator-header">
-                <span class="status-dot">✓</span>
+                <span class="status-check">✓</span>
                 <span class="indicator-name">${escapeHtml(indicator.name)}</span>
               </div>
               ${evidenceHtml}
@@ -339,7 +339,7 @@ export function buildPortfolioExportHtml(data: ExportData): string {
       return `
         <section class="criterion-section">
           <div class="criterion-pill">${escapeHtml(section.name)}</div>
-          <div class="criterion-meta">${section.coveredIndicators} من ${section.totalIndicators} مؤشر مغطى — ${sectionPercent}%</div>
+          <div class="criterion-meta-badge">${section.coveredIndicators} من ${section.totalIndicators} مؤشر مغطى — ${sectionPercent}%</div>
           ${indicatorsHtml}
         </section>
       `;
@@ -470,12 +470,33 @@ export function buildPortfolioExportHtml(data: ExportData): string {
     margin-bottom: 4px;
     box-shadow: 0 4px 14px rgba(9, 59, 100, 0.25);
   }
-  .criterion-meta { font-size: 12px; color: #64748B; margin: 8px 4px 16px; font-weight: 600; }
+  .criterion-meta-badge {
+    display: inline-block;
+    font-size: 11.5px;
+    color: #0F766E;
+    background: #F0FDFA;
+    border: 1px solid #99F6E4;
+    border-radius: 999px;
+    padding: 4px 14px;
+    margin: 8px 0 16px;
+    font-weight: 700;
+  }
 
   .indicator { padding: 10px 6px; border-bottom: 1px solid #EEF2F6; page-break-inside: avoid; }
-  .indicator-header { display: flex; align-items: baseline; gap: 8px; }
-  .indicator.covered .status-dot { color: #359B77; }
-  .indicator.missing .status-dot { color: #CBD5E1; }
+  .indicator-header { display: flex; align-items: center; gap: 9px; }
+  .status-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: #359B77;
+    color: white;
+    font-size: 10px;
+    font-weight: 900;
+    flex-shrink: 0;
+  }
   .indicator-name { font-size: 12.5px; font-weight: 600; }
 
   .evidence-badge {
