@@ -85,7 +85,62 @@ export type DriveFile = {
   mimeType: string;
   webViewLink?: string;
   modifiedTime?: string;
+  isFolder: boolean;
 };
+
+/**
+ * Lists the DIRECT children of a specific Drive folder (defaults to the
+ * account's root) — a real folder browser, not a flat "everything at once"
+ * list. Folders are returned alongside files (flagged via `isFolder`) so
+ * the UI can let the person navigate into them, rather than the previous
+ * behavior of mixing folders into the list as if they were downloadable
+ * files (which failed with "تعذر التحميل" when someone tried).
+ */
+export async function browseDriveFolder(tokens: GoogleTokens, folderId = 'root'): Promise<DriveFile[]> {
+  const client = getOAuthClient();
+  client.setCredentials(tokens);
+
+  const drive = google.drive({ version: 'v3', auth: client });
+
+  const { data } = await drive.files.list({
+    pageSize: 100,
+    orderBy: 'folder,name',
+    fields: 'files(id, name, mimeType, webViewLink, modifiedTime)',
+    q: `'${folderId}' in parents and trashed = false`,
+  });
+
+  return (data.files ?? []).map((file) => ({
+    id: file.id!,
+    name: file.name ?? 'بدون اسم',
+    mimeType: file.mimeType ?? 'application/octet-stream',
+    webViewLink: file.webViewLink ?? undefined,
+    modifiedTime: file.modifiedTime ?? undefined,
+    isFolder: file.mimeType === 'application/vnd.google-apps.folder',
+  }));
+}
+
+/**
+ * Fetches a single file's own metadata (name/mimeType) directly from
+ * Drive — used right before importing a file the person picked while
+ * browsing, so importing doesn't depend on a separate "sync" step having
+ * already persisted that file locally first.
+ */
+export async function getDriveFileMetadata(
+  tokens: GoogleTokens,
+  fileId: string,
+): Promise<{ name: string; mimeType: string } | null> {
+  const client = getOAuthClient();
+  client.setCredentials(tokens);
+
+  const drive = google.drive({ version: 'v3', auth: client });
+
+  try {
+    const { data } = await drive.files.get({ fileId, fields: 'name, mimeType' });
+    return { name: data.name ?? 'ملف بدون اسم', mimeType: data.mimeType ?? 'application/octet-stream' };
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Google Docs/Sheets/Slides aren't real downloadable files (they're live

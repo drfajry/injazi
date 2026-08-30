@@ -133,6 +133,13 @@ class _SourcesScreenState extends State<SourcesScreen> {
   }
 
   Future<void> _openDriveFilePicker(String sourceId) async {
+    // Breadcrumb stack of visited folders (id + display name), so the
+    // person can navigate into folders and back out — {'id': 'root',
+    // 'name': 'الرئيسية'} is always the first entry.
+    final folderStack = <Map<String, String>>[
+      {'id': 'root', 'name': 'الرئيسية'},
+    ];
+
     List<Map<String, dynamic>> items = [];
     bool loading = true;
     String? error;
@@ -142,28 +149,48 @@ class _SourcesScreenState extends State<SourcesScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
-          if (loading && error == null && items.isEmpty) {
-            widget.api.syncSource(sourceId).then((result) {
-              final fetchedItems = List<Map<String, dynamic>>.from(
-                (result['items'] as List? ?? []).map((i) => Map<String, dynamic>.from(i)),
-              );
+          Future<void> loadFolder() async {
+            setDialogState(() {
+              loading = true;
+              error = null;
+            });
+
+            try {
+              final fetched = await widget.api.browseDriveFolder(sourceId, folderId: folderStack.last['id']);
               setDialogState(() {
-                items = fetchedItems;
+                items = fetched;
                 loading = false;
               });
-            }).catchError((e) {
+            } catch (e) {
               setDialogState(() {
                 error = e.toString().replaceFirst('Exception: ', '');
                 loading = false;
               });
-            });
+            }
+          }
+
+          if (loading && error == null && items.isEmpty && folderStack.length == 1) {
+            loadFolder();
+          }
+
+          void openFolder(Map<String, dynamic> folder) {
+            folderStack.add({'id': folder['id'] as String, 'name': folder['title'] as String});
+            items = [];
+            loadFolder();
+          }
+
+          void goBack() {
+            if (folderStack.length <= 1) return;
+            folderStack.removeLast();
+            items = [];
+            loadFolder();
           }
 
           Future<void> importFile(Map<String, dynamic> item) async {
             setDialogState(() => importingId = item['id'] as String);
 
             try {
-              await widget.api.importDriveFile(sourceId, item['externalId'] as String);
+              await widget.api.importDriveFile(sourceId, item['id'] as String);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('تم استيراد "${item['title']}" كشاهد جديد بنجاح.')),
@@ -183,7 +210,23 @@ class _SourcesScreenState extends State<SourcesScreen> {
           return Directionality(
             textDirection: TextDirection.rtl,
             child: AlertDialog(
-              title: const Text('ملفات Google Drive'),
+              title: Row(
+                children: [
+                  if (folderStack.length > 1)
+                    IconButton(
+                      icon: const Icon(Icons.arrow_forward, size: 20),
+                      tooltip: 'رجوع',
+                      onPressed: loading ? null : goBack,
+                    ),
+                  Expanded(
+                    child: Text(
+                      folderStack.last['name'] ?? 'Google Drive',
+                      style: const TextStyle(fontSize: 16),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
               content: SizedBox(
                 width: double.maxFinite,
                 height: 420,
@@ -192,38 +235,43 @@ class _SourcesScreenState extends State<SourcesScreen> {
                     : error != null
                         ? Center(child: Text('تعذّر جلب الملفات: $error', textAlign: TextAlign.center))
                         : items.isEmpty
-                            ? const Center(child: Text('لا توجد ملفات بالحساب.'))
+                            ? const Center(child: Text('هذا المجلد فارغ.'))
                             : ListView.separated(
                                 itemCount: items.length,
                                 separatorBuilder: (context, index) => const Divider(height: 1),
                                 itemBuilder: (context, index) {
                                   final item = items[index];
+                                  final isFolder = item['isFolder'] == true;
                                   final isImporting = importingId == item['id'];
                                   final itemType = (item['itemType'] as String?) ?? '';
 
-                                  final icon = switch (itemType) {
-                                    String t when t == 'application/pdf' => Icons.picture_as_pdf_outlined,
-                                    String t when t.startsWith('image/') => Icons.image_outlined,
-                                    String t when t.startsWith('video/') => Icons.videocam_outlined,
-                                    String t when t.contains('word') || t.contains('document') => Icons.description_outlined,
-                                    String t when t.contains('sheet') || t.contains('excel') => Icons.table_chart_outlined,
-                                    String t when t.contains('zip') || t.contains('apk') => Icons.archive_outlined,
-                                    _ => Icons.insert_drive_file_outlined,
-                                  };
+                                  final icon = isFolder
+                                      ? Icons.folder_outlined
+                                      : switch (itemType) {
+                                          String t when t == 'application/pdf' => Icons.picture_as_pdf_outlined,
+                                          String t when t.startsWith('image/') => Icons.image_outlined,
+                                          String t when t.startsWith('video/') => Icons.videocam_outlined,
+                                          String t when t.contains('word') || t.contains('document') => Icons.description_outlined,
+                                          String t when t.contains('sheet') || t.contains('excel') => Icons.table_chart_outlined,
+                                          String t when t.contains('zip') || t.contains('apk') => Icons.archive_outlined,
+                                          _ => Icons.insert_drive_file_outlined,
+                                        };
 
-                                  final typeLabel = switch (itemType) {
-                                    String t when t == 'application/pdf' => 'PDF',
-                                    String t when t.startsWith('image/') => 'صورة',
-                                    String t when t.startsWith('video/') => 'فيديو',
-                                    String t when t.contains('word') || t.contains('document') => 'Word',
-                                    String t when t.contains('sheet') || t.contains('excel') => 'Excel',
-                                    '' => 'نوع غير معروف',
-                                    _ => itemType,
-                                  };
+                                  final typeLabel = isFolder
+                                      ? 'مجلد'
+                                      : switch (itemType) {
+                                          String t when t == 'application/pdf' => 'PDF',
+                                          String t when t.startsWith('image/') => 'صورة',
+                                          String t when t.startsWith('video/') => 'فيديو',
+                                          String t when t.contains('word') || t.contains('document') => 'Word',
+                                          String t when t.contains('sheet') || t.contains('excel') => 'Excel',
+                                          '' => 'نوع غير معروف',
+                                          _ => itemType,
+                                        };
 
                                   return ListTile(
                                     dense: true,
-                                    leading: Icon(icon, color: const Color(0xFF0F766E)),
+                                    leading: Icon(icon, color: isFolder ? const Color(0xFFD97706) : const Color(0xFF0F766E)),
                                     title: Text(
                                       item['title'] ?? '',
                                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
@@ -231,13 +279,16 @@ class _SourcesScreenState extends State<SourcesScreen> {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     subtitle: Text(typeLabel, style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
-                                    trailing: isImporting
-                                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                                        : IconButton(
-                                            icon: const Icon(Icons.download_outlined),
-                                            tooltip: 'استيراد كشاهد',
-                                            onPressed: importingId != null ? null : () => importFile(item),
-                                          ),
+                                    onTap: isFolder ? () => openFolder(item) : null,
+                                    trailing: isFolder
+                                        ? const Icon(Icons.chevron_left, color: Color(0xFF94A3B8))
+                                        : isImporting
+                                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                                            : IconButton(
+                                                icon: const Icon(Icons.download_outlined),
+                                                tooltip: 'استيراد كشاهد',
+                                                onPressed: importingId != null ? null : () => importFile(item),
+                                              ),
                                   );
                                 },
                               ),

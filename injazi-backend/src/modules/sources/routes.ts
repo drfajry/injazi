@@ -13,7 +13,8 @@ import {
   verifyState,
   exchangeCodeForTokens,
   getGoogleAccountEmail,
-  listDriveFiles,
+  browseDriveFolder,
+  getDriveFileMetadata,
   downloadDriveFile,
   type GoogleTokens,
 } from './google-oauth.js';
@@ -317,63 +318,43 @@ sourcesRouter.post('/madrasati/connect', requireAuth, async (req, res, next) => 
   } catch (error) { next(error); }
 });
 
-sourcesRouter.post('/:id/sync', requireAuth, async (req, res, next) => {
+/**
+ * Browses the contents of a Drive folder (defaults to root) — returns
+ * files AND subfolders so the app can let the person navigate into
+ * folders, instead of the old behavior of dumping everything (including
+ * folders, which aren't downloadable) into one flat list.
+ */
+sourcesRouter.get('/:id/drive/browse', requireAuth, async (req, res, next) => {
   try {
     const userId = getAuthenticatedUserId(req);
     const id = z.string().cuid().parse(req.params.id);
-    const source = await prisma.connectedSource.findUnique({ where: { id } });
+    const folderId = typeof req.query.folderId === 'string' ? req.query.folderId : 'root';
 
-    if (!source || source.userId !== userId) {
+    const source = await prisma.connectedSource.findUnique({ where: { id } });
+    if (!source || source.userId !== userId || source.type !== SourceType.GOOGLE_DRIVE) {
       return res.status(404).json({ error: 'Source not found' });
     }
 
-    if (source.type === SourceType.GOOGLE_DRIVE) {
-      const tokens = source.metadata as unknown as GoogleTokens | null;
-
-      if (!tokens?.access_token) {
-        return res.status(400).json({ error: 'حساب Google Drive غير مربوط بشكل صحيح. أعد الربط.' });
-      }
-
-      const files = await listDriveFiles(tokens);
-
-      for (const file of files) {
-        await prisma.sourceItem.upsert({
-          where: { sourceId_externalId: { sourceId: source.id, externalId: file.id } },
-          update: { title: file.name, itemType: file.mimeType, url: file.webViewLink },
-          create: {
-            sourceId: source.id,
-            externalId: file.id,
-            itemType: file.mimeType,
-            title: file.name,
-            url: file.webViewLink,
-          },
-        });
-      }
-
-      const updated = await prisma.connectedSource.update({
-        where: { id },
-        data: { lastSyncAt: new Date(), status: SourceStatus.CONNECTED },
-      });
-
-      const items = await prisma.sourceItem.findMany({
-        where: { sourceId: source.id },
-        orderBy: { title: 'asc' },
-      });
-
-      return res.status(200).json({
-        data: updated,
-        filesFound: files.length,
-        items: items.map((item) => ({
-          id: item.id,
-          externalId: item.externalId,
-          title: item.title,
-          itemType: item.itemType,
-        })),
-      });
+    const tokens = source.metadata as unknown as GoogleTokens | null;
+    if (!tokens?.access_token) {
+      return res.status(400).json({ error: 'حساب Google Drive غير مربوط بشكل صحيح. أعد الربط.' });
     }
 
-    const updated = await prisma.connectedSource.update({ where: { id }, data: { lastSyncAt: new Date(), status: SourceStatus.CONNECTED } });
-    res.status(202).json({ data: updated, queued: true });
+    const items = await browseDriveFolder(tokens, folderId);
+
+    await prisma.connectedSource.update({
+      where: { id },
+      data: { lastSyncAt: new Date(), status: SourceStatus.CONNECTED },
+    });
+
+    res.status(200).json({
+      data: items.map((item) => ({
+        id: item.id,
+        title: item.name,
+        itemType: item.mimeType,
+        isFolder: item.isFolder,
+      })),
+    });
   } catch (error) { next(error); }
 });
 
@@ -382,9 +363,9 @@ const MAX_DRIVE_IMPORT_BYTES = 15 * 1024 * 1024; // 15MB, matches the manual upl
 /**
  * Actually pulls a specific Drive file's content and turns it into a real
  * evidence item — downloads it, extracts text, stores the file, and runs
- * indicator matching, exactly like a manual upload. Listing (`/sync`) only
- * gives file names; this is the step that makes a Drive file usable the
- * same way as anything uploaded directly.
+ * indicator matching, exactly like a manual upload. Fetches the file's own
+ * name/type fresh from Drive rather than depending on a prior sync step,
+ * so it works no matter how deep in a folder tree the file was found.
  */
 sourcesRouter.post('/:id/import/:fileId', requireAuth, async (req, res, next) => {
   try {
@@ -402,14 +383,16 @@ sourcesRouter.post('/:id/import/:fileId', requireAuth, async (req, res, next) =>
       return res.status(400).json({ error: 'حساب Google Drive غير مربوط بشكل صحيح. أعد الربط.' });
     }
 
-    const sourceItem = await prisma.sourceItem.findFirst({
-      where: { sourceId: source.id, externalId: fileId },
-    });
-    if (!sourceItem) {
-      return res.status(404).json({ error: 'الملف غير موجود ضمن قائمة الملفات المتزامنة. جرّب المزامنة أولًا.' });
+    const metadata = await getDriveFileMetadata(tokens, fileId);
+    if (!metadata) {
+      return res.status(404).json({ error: 'تعذّر العثور على الملف بحساب Google Drive.' });
     }
 
-    const downloaded = await downloadDriveFile(tokens, fileId, sourceItem.itemType ?? 'application/octet-stream');
+    if (metadata.mimeType === 'application/vnd.google-apps.folder') {
+      return res.status(400).json({ error: 'هذا مجلد، افتحه واختر ملفًا من داخله.' });
+    }
+
+    const downloaded = await downloadDriveFile(tokens, fileId, metadata.mimeType);
 
     if (downloaded.buffer.byteLength > MAX_DRIVE_IMPORT_BYTES) {
       return res.status(413).json({ error: 'حجم الملف كبير جدًا (الحد الأقصى 15MB).' });
@@ -419,11 +402,10 @@ sourcesRouter.post('/:id/import/:fileId', requireAuth, async (req, res, next) =>
 
     const evidence = await createEvidenceCandidate({
       userId,
-      title: sourceItem.title ?? 'ملف من Google Drive',
+      title: metadata.name,
       description: extractedText ?? undefined,
       type: guessEvidenceType(downloaded.mimeType),
       confidence: 0.95,
-      sourceItemId: sourceItem.id,
     });
 
     const evidenceFile = await prisma.evidenceFile.create({
@@ -432,7 +414,7 @@ sourcesRouter.post('/:id/import/:fileId', requireAuth, async (req, res, next) =>
         storageKey: `db://evidence-file/${evidence.id}`,
         mimeType: downloaded.mimeType,
         size: downloaded.buffer.byteLength,
-        originalName: sourceItem.title,
+        originalName: metadata.name,
         data: Uint8Array.from(downloaded.buffer),
       },
       select: { id: true, mimeType: true, size: true, originalName: true, createdAt: true },

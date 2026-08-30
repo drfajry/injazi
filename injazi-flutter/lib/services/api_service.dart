@@ -694,20 +694,24 @@ class ApiService {
     );
   }
 
-  Future<Map<String, dynamic>> syncSource(String sourceId) async {
+  Future<List<Map<String, dynamic>>> browseDriveFolder(String sourceId, {String? folderId}) async {
     final token = await getAccessToken();
 
-    final response = await _client.post(
-      Uri.parse('$baseUrl/sources/$sourceId/sync'),
-      headers: _authorizedHeaders(token),
+    final uri = Uri.parse('$baseUrl/sources/$sourceId/drive/browse').replace(
+      queryParameters: folderId != null ? {'folderId': folderId} : null,
     );
 
+    final response = await _client.get(uri, headers: _authorizedHeaders(token));
+
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      final message = _extractErrorMessage(response.body) ?? 'Failed to sync source';
+      final message = _extractErrorMessage(response.body) ?? 'Failed to browse Drive folder';
       throw Exception(message);
     }
 
-    return Map<String, dynamic>.from(jsonDecode(response.body));
+    final data = Map<String, dynamic>.from(jsonDecode(response.body));
+    return List<Map<String, dynamic>>.from(
+      (data['data'] as List).map((item) => Map<String, dynamic>.from(item)),
+    );
   }
 
   Future<Map<String, dynamic>> importDriveFile(String sourceId, String fileId) async {
