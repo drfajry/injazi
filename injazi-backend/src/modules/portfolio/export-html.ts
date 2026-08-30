@@ -254,10 +254,6 @@ export function buildPortfolioExportHtml(data: ExportData): string {
 
   const sectionsHtml = data.sections
     .map((section) => {
-      const sectionPercent = section.totalIndicators
-        ? Math.round((section.coveredIndicators / section.totalIndicators) * 100)
-        : 0;
-
       const coveredIndicators = section.indicators.filter((indicator) => indicator.evidence.length > 0);
 
       // Skip criteria with zero covered indicators entirely — an empty
@@ -303,17 +299,9 @@ export function buildPortfolioExportHtml(data: ExportData): string {
                     ? `<p class="no-content-note">(لم يتم استخراج محتوى نصي قابل للعرض من هذا الملف)</p>`
                     : '';
 
-                  const metaBadges = `
-                    <div class="evidence-meta-badges">
-                      ${e.fileTypeLabel ? `<span class="meta-badge">📄 ${escapeHtml(e.fileTypeLabel)}</span>` : ''}
-                      ${e.addedDate ? `<span class="meta-badge">🗓 ${escapeHtml(e.addedDate)}</span>` : ''}
-                    </div>
-                  `;
-
                   return `
                     <div class="evidence-item${e.imageIsLandscape ? ' evidence-item-half' : ''}">
                       <div class="evidence-title">📎 ${escapeHtml(e.title)}</div>
-                      ${metaBadges}
                       ${pdfPages}
                       ${image}
                       ${table}
@@ -339,7 +327,6 @@ export function buildPortfolioExportHtml(data: ExportData): string {
       return `
         <section class="criterion-section">
           <div class="criterion-pill">${escapeHtml(section.name)}</div>
-          <div class="criterion-meta-badge">${section.coveredIndicators} من ${section.totalIndicators} مؤشر مغطى — ${sectionPercent}%</div>
           ${indicatorsHtml}
         </section>
       `;
@@ -470,18 +457,6 @@ export function buildPortfolioExportHtml(data: ExportData): string {
     margin-bottom: 4px;
     box-shadow: 0 4px 14px rgba(9, 59, 100, 0.25);
   }
-  .criterion-meta-badge {
-    display: inline-block;
-    font-size: 11.5px;
-    color: #0F766E;
-    background: #F0FDFA;
-    border: 1px solid #99F6E4;
-    border-radius: 999px;
-    padding: 4px 14px;
-    margin: 8px 0 16px;
-    font-weight: 700;
-  }
-
   .indicator { padding: 10px 6px; border-bottom: 1px solid #EEF2F6; page-break-inside: avoid; }
   .indicator-header { display: flex; align-items: center; gap: 9px; }
   .status-check {
@@ -554,14 +529,17 @@ export function buildPortfolioExportHtml(data: ExportData): string {
     width: 100%;
     object-fit: contain;
   }
-  /* Fixed pages (CV, schedule, etc.) show at full document size, not the
-     small evidence-preview thumbnail — each page gets its own printed
-     page, matching how the original document actually looks. */
+  /* Fixed pages (CV, schedule, etc.) and multi-page PDF evidence show at
+     full document size, not a small thumbnail. Deliberately NOT forcing a
+     page break before each one — a forced break left large empty gaps at
+     the bottom of the previous page whenever there wasn't quite enough
+     room left for it. Letting it flow naturally (with page-break-inside:
+     avoid so a single page-image itself isn't sliced awkwardly) keeps
+     content packed without wasted space. */
   .fixed-page-image-wrap {
-    page-break-before: always;
+    page-break-inside: avoid;
     padding-top: 10px;
   }
-  .fixed-page-image-wrap:first-child { page-break-before: auto; }
   .fixed-page-image {
     width: 100%;
     height: auto;
