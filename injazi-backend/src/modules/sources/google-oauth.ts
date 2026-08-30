@@ -191,30 +191,3 @@ export async function downloadDriveFile(
     mimeType: exportMimeType ?? mimeType,
   };
 }
-
-/**
- * Lists recent files from the user's Drive using stored tokens. The
- * googleapis client auto-refreshes the access token using the stored
- * refresh_token when it has expired.
- */
-export async function listDriveFiles(tokens: GoogleTokens): Promise<DriveFile[]> {
-  const client = getOAuthClient();
-  client.setCredentials(tokens);
-
-  const drive = google.drive({ version: 'v3', auth: client });
-
-  const { data } = await drive.files.list({
-    pageSize: 25,
-    orderBy: 'modifiedTime desc',
-    fields: 'files(id, name, mimeType, webViewLink, modifiedTime)',
-    q: "trashed = false",
-  });
-
-  return (data.files ?? []).map((file) => ({
-    id: file.id!,
-    name: file.name ?? 'ملف بدون اسم',
-    mimeType: file.mimeType ?? 'application/octet-stream',
-    webViewLink: file.webViewLink ?? undefined,
-    modifiedTime: file.modifiedTime ?? undefined,
-  }));
-}
