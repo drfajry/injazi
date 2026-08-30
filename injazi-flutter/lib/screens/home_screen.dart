@@ -63,7 +63,7 @@ label: '\u0645\u0644\u0641\u064a',
 ),
 floatingActionButton: navigationShell.currentIndex == 0
 ? FloatingActionButton.extended(
-onPressed: () {},
+onPressed: () => navigationShell.goBranch(1),
 icon: const Icon(Icons.add),
 label: const Text(
 'إضافة شاهد',
