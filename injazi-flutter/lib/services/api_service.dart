@@ -345,6 +345,22 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> getProgressReport() async {
+    final token = await getAccessToken();
+
+    final response = await _client.get(
+      Uri.parse('$baseUrl/me/coverage/reports/progress'),
+      headers: _authorizedHeaders(token),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Failed to load progress report');
+    }
+
+    final data = Map<String, dynamic>.from(jsonDecode(response.body));
+    return Map<String, dynamic>.from(data['data']);
+  }
+
   Future<Map<String, dynamic>> getCoverage() async {
     final token = await getAccessToken();
 

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../models/evidence.dart';
 import '../services/api_service.dart';
 import '../widgets/coverage_card.dart';
+import 'progress_report_screen.dart';
 import '../widgets/evidence_tile.dart';
 
 /// The chrome (bottom nav, FAB) shared by the Dashboard, Sources, and
@@ -224,6 +225,19 @@ value: _coverageValue,
 complete: _complete,
 needsSupport: _needsSupport,
 missing: _missing,
+),
+const SizedBox(height: 10),
+SizedBox(
+width: double.infinity,
+child: OutlinedButton.icon(
+onPressed: () {
+Navigator.of(context).push(
+MaterialPageRoute(builder: (context) => ProgressReportScreen(api: widget.api)),
+);
+},
+icon: const Icon(Icons.insights_outlined),
+label: const Text('عرض تقارير التقدم'),
+),
 ),
 const SizedBox(height: 22),
 SectionTitle(
