@@ -175,6 +175,26 @@ class _EvidenceTileState extends State<EvidenceTile> {
                           _StatusBadge(status: widget.evidence.status),
                         ],
                       ),
+                      if (widget.evidence.linkedIndicatorNames.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.link, size: 13, color: Color(0xFF0F766E)),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                _formatLinkedIndicators(widget.evidence.linkedIndicatorNames),
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  color: Color(0xFF0F766E),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -189,7 +209,10 @@ class _EvidenceTileState extends State<EvidenceTile> {
                   child: TextButton.icon(
                     onPressed: _busy ? null : _linkToIndicator,
                     icon: const Icon(Icons.link_outlined, size: 16),
-                    label: const Text('ربط بمؤشر', style: TextStyle(fontSize: 12)),
+                    label: Text(
+                      widget.evidence.linkedIndicatorNames.isEmpty ? 'ربط بمؤشر' : 'ربط بمؤشر آخر',
+                      style: const TextStyle(fontSize: 12),
+                    ),
                     style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 30)),
                   ),
                 ),
@@ -243,6 +266,18 @@ class _EvidenceTileState extends State<EvidenceTile> {
       ),
     );
   }
+}
+
+// "اسم المؤشر" وحده لو مؤشر واحد، "اسم المؤشر و1 آخر" لو اثنين،
+// "اسم المؤشر و2 آخرين" لو ثلاثة وهكذا — يعرض أول مؤشر بالاسم كامل
+// والباقي كعدد بدل ما يزحم السطر بأسماء طويلة.
+String _formatLinkedIndicators(List<String> names) {
+  if (names.isEmpty) return '';
+  if (names.length == 1) return names.first;
+
+  final extra = names.length - 1;
+  final suffix = extra == 1 ? 'و1 آخر' : 'و$extra آخرين';
+  return '${names.first} $suffix';
 }
 
 class _StatusBadge extends StatelessWidget {

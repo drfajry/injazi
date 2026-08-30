@@ -15,7 +15,7 @@ evidenceRouter.get('/', requireAuth, async (req, res, next) => {
     const evidence = await prisma.evidence.findMany({
       where: { userId, ...(status ? { status } : {}) },
       include: {
-        links: true,
+        links: { include: { indicator: { select: { name: true } } } },
         // Only the lightweight metadata — never the raw file bytes (`data`
         // column). Pulling full binary content for every evidence item on
         // every dashboard load was transferring tens of MB unnecessarily
