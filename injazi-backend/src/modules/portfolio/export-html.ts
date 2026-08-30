@@ -6,7 +6,10 @@ type ExportEvidence = {
   description: string | null;
   imageDataUrl: string | null;
   imageDataUrls?: string[] | null;
+  imageIsLandscape?: boolean;
   tableHtml: string | null;
+  fileTypeLabel?: string | null;
+  addedDate?: string;
   label?: string | null;
   fixedPageType?: string | null;
 };
@@ -266,26 +269,52 @@ export function buildPortfolioExportHtml(data: ExportData): string {
         .map((indicator) => {
           const evidenceHtml = `<div class="evidence-badge">الشواهد</div>` + indicator.evidence
                 .map((e) => {
-                  const image = e.imageDataUrl
+                  // PDFs render as their full set of pages now (not a
+                  // single shrunk thumbnail) — same treatment as the fixed
+                  // pages section, since a shrunk preview was never
+                  // actually useful as a real record of the document.
+                  const pdfPages = e.imageDataUrls?.length
+                    ? e.imageDataUrls
+                        .map(
+                          (url, index) => `
+                            <div class="fixed-page-image-wrap">
+                              <img class="fixed-page-image" src="${url}" alt="${escapeHtml(e.title)} — ${index + 1}" />
+                            </div>
+                          `,
+                        )
+                        .join('')
+                    : '';
+
+                  const image = !pdfPages && e.imageDataUrl
                     ? `<img class="evidence-image" src="${e.imageDataUrl}" alt="${escapeHtml(e.title)}" />`
                     : '';
-                  const table = !image && e.tableHtml
+
+                  const table = !pdfPages && !image && e.tableHtml
                     ? `<div class="evidence-table-wrap">${e.tableHtml}</div>`
                     : '';
                   // Only show the extracted-text excerpt when there's no
                   // rendered image or table — once the real content is
                   // visible, repeating it as plain text underneath is
                   // redundant clutter.
-                  const excerpt = !image && !table && e.description
+                  const excerpt = !pdfPages && !image && !table && e.description
                     ? `<blockquote class="evidence-excerpt">${escapeHtml(e.description.slice(0, 600))}${e.description.length > 600 ? '…' : ''}</blockquote>`
                     : '';
-                  const noContent = !excerpt && !image && !table
+                  const noContent = !excerpt && !pdfPages && !image && !table
                     ? `<p class="no-content-note">(لم يتم استخراج محتوى نصي قابل للعرض من هذا الملف)</p>`
                     : '';
 
+                  const metaBadges = `
+                    <div class="evidence-meta-badges">
+                      ${e.fileTypeLabel ? `<span class="meta-badge">📄 ${escapeHtml(e.fileTypeLabel)}</span>` : ''}
+                      ${e.addedDate ? `<span class="meta-badge">🗓 ${escapeHtml(e.addedDate)}</span>` : ''}
+                    </div>
+                  `;
+
                   return `
-                    <div class="evidence-item">
+                    <div class="evidence-item${e.imageIsLandscape ? ' evidence-item-half' : ''}">
                       <div class="evidence-title">📎 ${escapeHtml(e.title)}</div>
+                      ${metaBadges}
+                      ${pdfPages}
                       ${image}
                       ${table}
                       ${excerpt}
@@ -391,6 +420,17 @@ export function buildPortfolioExportHtml(data: ExportData): string {
     position: relative;
     z-index: 1;
   }
+  /* Subtle dashed inner frame around the whole cover — an accent border
+     echoing a traditional certificate/portfolio look, in our own
+     navy/teal identity rather than a solid box. */
+  .cover-frame {
+    position: absolute;
+    inset: 6mm;
+    border: 1.5px dashed #99C9BB;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: -1;
+  }
   .cover-pill {
     background: linear-gradient(135deg, #359B77, #093B64);
     color: white;
@@ -450,6 +490,16 @@ export function buildPortfolioExportHtml(data: ExportData): string {
   }
   .evidence-item { margin: 6px 0 10px 26px; page-break-inside: avoid; }
   .evidence-title { font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px; }
+  .evidence-meta-badges { display: flex; gap: 6px; margin-bottom: 6px; }
+  .meta-badge {
+    font-size: 10px;
+    color: #0F766E;
+    background: #F0FDFA;
+    border: 1px solid #99F6E4;
+    border-radius: 999px;
+    padding: 2px 9px;
+    font-weight: 600;
+  }
   .evidence-excerpt {
     font-size: 11px;
     color: #475569;
@@ -467,6 +517,21 @@ export function buildPortfolioExportHtml(data: ExportData): string {
     border: 1px solid #E2E8F0;
     margin: 6px 0;
     display: block;
+  }
+  /* Landscape (wide) photos: the whole evidence block (caption + photo) is
+     shown at roughly half the page width, so two land side by side on the
+     same row instead of one wide photo wasting an almost-empty page. */
+  .evidence-item-half {
+    display: inline-block;
+    width: 48%;
+    vertical-align: top;
+    margin-left: 1%;
+    margin-right: 1%;
+  }
+  .evidence-item-half .evidence-image {
+    max-height: 220px;
+    width: 100%;
+    object-fit: contain;
   }
   /* Fixed pages (CV, schedule, etc.) show at full document size, not the
      small evidence-preview thumbnail — each page gets its own printed
@@ -552,6 +617,7 @@ export function buildPortfolioExportHtml(data: ExportData): string {
     </div>
 
     <div class="cover">
+      <div class="cover-frame"></div>
       <div class="cover-pill">ملف الإنجاز للمعلم للعام الدراسي</div>
       <div class="cover-subtitle">وفق نموذج تقييم أداء الوظائف التعليمية — الدليل المهني الجديد</div>
       <div class="cover-field">اسم المعلم: ${escapeHtml(data.teacherName)}</div>

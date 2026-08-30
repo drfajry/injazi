@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { prisma } from '../../db/prisma.js';
 import { requireAuth, getAuthenticatedUserId } from '../auth/middleware.js';
 import { buildPortfolioExportHtml, buildPublicPortfolioHtml, buildPublicNotFoundHtml } from './export-html.js';
-import { renderFirstPdfPageToImage, renderAllPdfPagesToImages } from './pdf-render.js';
+import { renderAllPdfPagesToImages } from './pdf-render.js';
+import { isLandscape } from './image-dimensions.js';
 import { renderExcelAsHtmlTable } from './excel-render.js';
 import { computeCoverageSummary } from '../coverage/coverage-engine.js';
 
@@ -83,17 +84,15 @@ async function buildPortfolioData(userId: string) {
   };
 }
 
-async function renderEvidenceForExport(
-  evidence: {
-    id: string;
-    title: string;
-    type: string;
-    description: string | null;
-    files: { mimeType: string; data: Uint8Array | null }[];
-    metadata?: unknown;
-  },
-  options: { renderAllPdfPages?: boolean } = {},
-) {
+async function renderEvidenceForExport(evidence: {
+  id: string;
+  title: string;
+  type: string;
+  description: string | null;
+  createdAt: Date;
+  files: { mimeType: string; data: Uint8Array | null }[];
+  metadata?: unknown;
+}) {
   const file = evidence.files[0];
   const isImage = file?.mimeType?.startsWith('image/') ?? false;
   const isPdf = file?.mimeType === 'application/pdf';
@@ -104,27 +103,42 @@ async function renderEvidenceForExport(
   let imageDataUrl: string | null = null;
   let imageDataUrls: string[] | null = null;
   let tableHtml: string | null = null;
+  let imageIsLandscape = false;
 
   if (isImage && file?.data) {
-    imageDataUrl = `data:${file.mimeType};base64,${Buffer.from(file.data).toString('base64')}`;
+    const buffer = Buffer.from(file.data);
+    imageDataUrl = `data:${file.mimeType};base64,${buffer.toString('base64')}`;
+    // Landscape photos get shown at half-page width (two per row) instead
+    // of full width — a wide photo blown up to full width wastes space and
+    // makes the document feel sparse; portrait photos keep full size since
+    // they're already page-proportioned.
+    imageIsLandscape = isLandscape(buffer);
   } else if (isPdf && file?.data) {
-    if (options.renderAllPdfPages) {
-      // Fixed pages (CV, schedule, etc.) are meant to be shown as complete
-      // documents, not a single-page preview — render every page at full
-      // size rather than just the first.
-      const rendered = await renderAllPdfPagesToImages(Buffer.from(file.data));
-      if (rendered.length > 0) {
-        imageDataUrls = rendered.map((page) => `data:image/png;base64,${page}`);
-      }
-    } else {
-      const rendered = await renderFirstPdfPageToImage(Buffer.from(file.data));
-      if (rendered) imageDataUrl = `data:image/png;base64,${rendered}`;
+    // Every PDF — not just "fixed pages" — is now rendered as a complete
+    // document at full size: all pages, not just a first-page thumbnail.
+    // A shrunk single-page preview was never actually useful as a real
+    // record of the document.
+    const rendered = await renderAllPdfPagesToImages(Buffer.from(file.data));
+    if (rendered.length > 0) {
+      imageDataUrls = rendered.map((page) => `data:image/png;base64,${page}`);
     }
   } else if (isExcel && file?.data) {
     tableHtml = renderExcelAsHtmlTable(Buffer.from(file.data));
   }
 
   const metadata = evidence.metadata as { label?: string; fixedPageType?: string } | null;
+
+  const fileTypeLabel = !file
+    ? null
+    : isPdf
+      ? 'PDF'
+      : isImage
+        ? 'صورة'
+        : isExcel
+          ? 'Excel'
+          : file.mimeType.includes('word') || file.mimeType.includes('document')
+            ? 'Word'
+            : null;
 
   return {
     id: evidence.id,
@@ -133,7 +147,10 @@ async function renderEvidenceForExport(
     description: evidence.description,
     imageDataUrl,
     imageDataUrls,
+    imageIsLandscape,
     tableHtml,
+    fileTypeLabel,
+    addedDate: evidence.createdAt.toISOString().slice(0, 10),
     label: metadata?.label ?? null,
     fixedPageType: metadata?.fixedPageType ?? null,
   };
@@ -158,7 +175,7 @@ async function buildPortfolioExportData(userId: string) {
 
   const generalInfo = (
     await Promise.all(
-      generalInfoEvidence.map((evidence) => renderEvidenceForExport(evidence, { renderAllPdfPages: true })),
+      generalInfoEvidence.map((evidence) => renderEvidenceForExport(evidence)),
     )
   ).sort((a, b) => {
     const aIndex = FIXED_PAGE_ORDER.indexOf(a.fixedPageType ?? '');
