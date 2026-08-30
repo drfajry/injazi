@@ -21,11 +21,33 @@ evidenceRouter.get('/', requireAuth, async (req, res, next) => {
         // every dashboard load was transferring tens of MB unnecessarily
         // and was the main cause of the app feeling persistently slow.
         files: { select: { id: true, mimeType: true, size: true, originalName: true, createdAt: true } },
-        sourceItem: true,
+        sourceItem: { include: { source: { select: { type: true } } } },
       },
       orderBy: { updatedAt: 'desc' },
     });
-    res.json({ data: evidence });
+
+    // The frontend expects a human-readable `source` label — the raw
+    // Prisma shape only has a nested sourceItem.source.type (or nothing at
+    // all for typed-text entries like Vision/Mission), which previously
+    // meant every single evidence item showed "مصدر غير معروف" since that
+    // field never actually existed in the response.
+    const withSourceLabel = evidence.map((item) => {
+      const connectedType = item.sourceItem?.source?.type;
+      const source =
+        item.type === 'LINK'
+          ? 'رابط ويب'
+          : connectedType === 'GOOGLE_DRIVE'
+            ? 'Google Drive'
+            : connectedType === 'MADRASATI'
+              ? 'مدرستي'
+              : item.sourceItem
+                ? 'رفع يدوي'
+                : 'إدخال مباشر';
+
+      return { ...item, source };
+    });
+
+    res.json({ data: withSourceLabel });
   } catch (error) {
     next(error);
   }
