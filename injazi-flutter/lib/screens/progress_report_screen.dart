@@ -225,15 +225,14 @@ class _CriterionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final percent = ((criterion['percent'] ?? 0) as num).toDouble();
     final covered = criterion['covered'] ?? 0;
     final total = criterion['total'] ?? 0;
 
-    final color = percent < 35
-        ? const Color(0xFFEF4444)
-        : percent < 90
-            ? const Color(0xFFF59E0B)
-            : const Color(0xFF15803D);
+    // Always the same brand green — this comparison view is meant to
+    // encourage progress ("here's how far along each criterion is"), not
+    // flag criteria as "bad" with red. Red/amber/green urgency coloring
+    // stays where it actually matters (the overall coverage bar).
+    const color = Color(0xFF359B77);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
