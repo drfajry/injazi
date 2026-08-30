@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../models/evidence.dart';
 import '../services/api_service.dart';
 import '../widgets/coverage_card.dart';
+import '../widgets/reminders_banner.dart';
 import 'progress_report_screen.dart';
 import '../widgets/evidence_tile.dart';
 
@@ -220,6 +221,7 @@ TextButton(onPressed: _load, child: const Text('إعادة المحاولة')),
 ),
 )
 else ...[
+RemindersBanner(api: widget.api),
 CoverageCard(
 value: _coverageValue,
 complete: _complete,

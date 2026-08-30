@@ -361,6 +361,22 @@ class ApiService {
     return Map<String, dynamic>.from(data['data']);
   }
 
+  Future<Map<String, dynamic>> getReminders() async {
+    final token = await getAccessToken();
+
+    final response = await _client.get(
+      Uri.parse('$baseUrl/me/coverage/reminders'),
+      headers: _authorizedHeaders(token),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Failed to load reminders');
+    }
+
+    final data = Map<String, dynamic>.from(jsonDecode(response.body));
+    return Map<String, dynamic>.from(data['data']);
+  }
+
   Future<Map<String, dynamic>> getCoverage() async {
     final token = await getAccessToken();
 
