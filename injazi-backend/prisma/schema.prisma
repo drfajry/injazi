@@ -152,6 +152,12 @@ criterionId String
 code        String                  @unique
 name        String
 description String?
+// Concrete example evidence items for this indicator (e.g. "صور من
+// الصف أثناء تطبيق استراتيجية تدريس معينة") — sourced from the official
+// reference sheet. Used to improve automatic matching accuracy: real
+// uploaded documents match these concrete examples far better than the
+// indicator's own short, abstract policy description.
+examples    String[]                @default([])
 weight      Float                   @default(1)
 criterion   Criterion               @relation(fields: [criterionId], references: [id], onDelete: Cascade)
 links       EvidenceIndicatorLink[]

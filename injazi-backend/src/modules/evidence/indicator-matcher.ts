@@ -95,10 +95,24 @@ export async function matchEvidenceToIndicators(evidenceId: string): Promise<num
 
   const scored = indicators
     .map((indicator) => {
-      const indicatorText = [indicator.name, indicator.description].filter(Boolean).join(' ');
-      const indicatorTokens = tokenize(indicatorText);
-      const score = overlapCoefficient(evidenceTokens, indicatorTokens);
-      return { indicatorId: indicator.id, indicatorCode: indicator.code, score };
+      // Compare against the indicator's own name+description AND each
+      // concrete example separately, taking the best match — rather than
+      // merging everything into one big blob of text. A real uploaded
+      // document (e.g. an exam) matches a specific concrete example (e.g.
+      // "نموذج اختبار تحريري يتضمن أسئلة متنوعة") far better than it
+      // matches the indicator's short, abstract policy description, and
+      // merging them would just dilute that concrete signal.
+      const referenceTexts = [
+        [indicator.name, indicator.description].filter(Boolean).join(' '),
+        ...(indicator.examples ?? []),
+      ];
+
+      const bestScore = referenceTexts.reduce((best, text) => {
+        const score = overlapCoefficient(evidenceTokens, tokenize(text));
+        return Math.max(best, score);
+      }, 0);
+
+      return { indicatorId: indicator.id, indicatorCode: indicator.code, score: bestScore };
     })
     .sort((a, b) => b.score - a.score);
 
