@@ -134,7 +134,7 @@ async function renderEvidenceForExport(evidence: {
     tableHtml = renderExcelAsHtmlTable(Buffer.from(file.data));
   }
 
-  const metadata = evidence.metadata as { label?: string; fixedPageType?: string } | null;
+  const metadata = evidence.metadata as { label?: string; fixedPageType?: string; platform?: string } | null;
 
   const fileTypeLabel = !file
     ? null
@@ -162,6 +162,7 @@ async function renderEvidenceForExport(evidence: {
     addedDate: evidence.createdAt.toISOString().slice(0, 10),
     label: metadata?.label ?? null,
     fixedPageType: metadata?.fixedPageType ?? null,
+    platform: metadata?.platform ?? null,
   };
 }
 

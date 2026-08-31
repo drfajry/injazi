@@ -13,6 +13,7 @@ type ExportEvidence = {
   addedDate?: string;
   label?: string | null;
   fixedPageType?: string | null;
+  platform?: string | null;
 };
 
 type ExportIndicator = {
@@ -301,9 +302,13 @@ export function buildPortfolioExportHtml(data: ExportData): string {
                     ? `<p class="no-content-note">(لم يتم استخراج محتوى نصي قابل للعرض من هذا الملف)</p>`
                     : '';
 
+                  const platformBadge = e.platform === 'MADRASATI'
+                    ? `<span class="platform-badge">🏫 مستورد من نظام مدرستي</span>`
+                    : '';
+
                   return `
                     <div class="evidence-item${e.imageIsLandscape ? ' evidence-item-half' : ''}">
-                      <div class="evidence-title">📎 ${escapeHtml(e.title)}</div>
+                      <div class="evidence-title">📎 ${escapeHtml(e.title)} ${platformBadge}</div>
                       ${pdfPages}
                       ${image}
                       ${table}
@@ -488,6 +493,18 @@ export function buildPortfolioExportHtml(data: ExportData): string {
   }
   .evidence-item { margin: 6px 0 10px 26px; page-break-inside: avoid; }
   .evidence-title { font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px; }
+  .platform-badge {
+    display: inline-block;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #093B64;
+    background: #E0F2FE;
+    border: 1px solid #BAE6FD;
+    border-radius: 999px;
+    padding: 1px 8px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
   .evidence-meta-badges { display: flex; gap: 6px; margin-bottom: 6px; }
   .meta-badge {
     font-size: 10px;

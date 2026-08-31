@@ -33,12 +33,13 @@ evidenceRouter.get('/', requireAuth, async (req, res, next) => {
     // field never actually existed in the response.
     const withSourceLabel = evidence.map((item) => {
       const connectedType = item.sourceItem?.source?.type;
+      const metadataPlatform = (item.metadata as { platform?: string } | null)?.platform;
       const source =
         item.type === 'LINK'
           ? 'رابط ويب'
-          : connectedType === 'GOOGLE_DRIVE'
+          : connectedType === 'GOOGLE_DRIVE' || metadataPlatform === 'GOOGLE_DRIVE'
             ? 'Google Drive'
-            : connectedType === 'MADRASATI'
+            : connectedType === 'MADRASATI' || metadataPlatform === 'MADRASATI'
               ? 'مدرستي'
               : item.sourceItem
                 ? 'رفع يدوي'
@@ -77,9 +78,14 @@ evidenceRouter.post('/manual', requireAuth, async (req, res, next) => {
       // implies category GENERAL_INFO and supplies its display label —
       // the caller doesn't need to also pass `category` separately.
       fixedPageType: z.string().optional(),
+      // Which external platform this evidence actually came from (e.g.
+      // 'MADRASATI' from the browser extension) — shown as a small
+      // provenance badge in the printed portfolio and on the dashboard,
+      // distinct from a manual file upload or typed entry.
+      platform: z.enum(['MADRASATI']).optional(),
     }).parse(req.body);
 
-    const { indicatorId, category, fixedPageType, ...candidateFields } = body;
+    const { indicatorId, category, fixedPageType, platform, ...candidateFields } = body;
 
     const isFixedPage = isValidFixedPageType(fixedPageType);
     const fixedPageLabel = isFixedPage ? FIXED_PAGE_LABELS[fixedPageType] : undefined;
@@ -88,9 +94,14 @@ evidenceRouter.post('/manual', requireAuth, async (req, res, next) => {
     const evidence = await createEvidenceCandidate({
       ...candidateFields,
       userId,
-      metadata: isGeneralInfo
-        ? { category: 'GENERAL_INFO', ...(isFixedPage ? { label: fixedPageLabel, fixedPageType } : {}) }
-        : undefined,
+      metadata:
+        isGeneralInfo || platform
+          ? {
+              ...(isGeneralInfo ? { category: 'GENERAL_INFO' } : {}),
+              ...(isFixedPage ? { label: fixedPageLabel, fixedPageType } : {}),
+              ...(platform ? { platform } : {}),
+            }
+          : undefined,
       // Skip the automatic matcher when we already have a known-correct
       // indicator or this is general info with no indicator to match.
       skipAutoMatch: Boolean(indicatorId) || isGeneralInfo,
