@@ -94,6 +94,15 @@ sourcesRouter.post('/upload', requireAuth, upload.single('file'), async (req, re
     const isFixedPage = fixedPageType !== undefined && fixedPageType in FIXED_PAGE_LABELS;
     const fixedPageLabel = isFixedPage ? FIXED_PAGE_LABELS[fixedPageType] : undefined;
 
+    // Optional: the caller (e.g. the Madrasati extension) may already know
+    // the correct indicator — a known-correct link beats a guess, same as
+    // the manual-entry endpoint.
+    const indicatorId = typeof req.body?.indicatorId === 'string' ? req.body.indicatorId : undefined;
+    // Which external platform this file's evidence actually came from
+    // (e.g. a screenshot captured from Madrasati) — shown as a small
+    // provenance badge in the printed portfolio.
+    const platform = req.body?.platform === 'MADRASATI' ? 'MADRASATI' : undefined;
+
     const title = typeof req.body?.title === 'string' && req.body.title.trim().length > 0
       ? req.body.title.trim()
       : (fixedPageLabel ?? file.originalname);
@@ -113,6 +122,8 @@ sourcesRouter.post('/upload', requireAuth, upload.single('file'), async (req, re
     // the file type isn't supported yet (e.g. images require OCR, not built yet).
     const extractedText = await extractText(file.buffer, file.mimetype);
 
+    const isGeneralInfo = isFixedPage;
+
     const evidence = await createEvidenceCandidate({
       userId,
       title,
@@ -120,9 +131,23 @@ sourcesRouter.post('/upload', requireAuth, upload.single('file'), async (req, re
       type: guessEvidenceType(file.mimetype),
       confidence: 0.95, // manual, user-provided upload — high confidence
       sourceItemId: sourceItem.id,
-      metadata: isFixedPage ? { category: 'GENERAL_INFO', label: fixedPageLabel, fixedPageType } : undefined,
-      skipAutoMatch: isFixedPage,
+      metadata:
+        isGeneralInfo || platform
+          ? {
+              ...(isGeneralInfo ? { category: 'GENERAL_INFO', label: fixedPageLabel, fixedPageType } : {}),
+              ...(platform ? { platform } : {}),
+            }
+          : undefined,
+      skipAutoMatch: isGeneralInfo || Boolean(indicatorId),
     });
+
+    if (indicatorId) {
+      await prisma.evidenceIndicatorLink.upsert({
+        where: { evidenceId_indicatorId: { evidenceId: evidence.id, indicatorId } },
+        update: { matchScore: 1, modelVersion: 'source-mapped' },
+        create: { evidenceId: evidence.id, indicatorId, matchScore: 1, modelVersion: 'source-mapped' },
+      });
+    }
 
     const evidenceFile = await prisma.evidenceFile.create({
       data: {
