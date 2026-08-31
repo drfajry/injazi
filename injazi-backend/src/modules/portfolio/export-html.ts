@@ -6,6 +6,7 @@ type ExportEvidence = {
   description: string | null;
   imageDataUrl: string | null;
   imageDataUrls?: string[] | null;
+  pdfPageIsLandscape?: boolean[] | null;
   imageIsLandscape?: boolean;
   tableHtml: string | null;
   fileTypeLabel?: string | null;
@@ -162,7 +163,6 @@ export function buildPortfolioExportHtml(data: ExportData): string {
     day: 'numeric',
   }).format(new Date());
 
-  const overallPercent = (data.overallCoverage * 100).toFixed(1);
   const ministryLogo = getMinistryLogoBase64();
   const ministryLogoHtml = ministryLogo
     ? `<img class="ministry-logo" src="data:image/png;base64,${ministryLogo}" alt="شعار وزارة التعليم" />`
@@ -216,13 +216,14 @@ export function buildPortfolioExportHtml(data: ExportData): string {
       // not a complete standalone document.
       const multiPageImages = e.imageDataUrls?.length
         ? e.imageDataUrls
-            .map(
-              (url, index) => `
-                <div class="fixed-page-image-wrap">
+            .map((url, index) => {
+              const isLandscapePage = e.pdfPageIsLandscape?.[index] ?? false;
+              return `
+                <div class="fixed-page-image-wrap${isLandscapePage ? ' fixed-page-image-wrap-half' : ''}">
                   <img class="fixed-page-image" src="${url}" alt="${escapeHtml(e.title)} — ${index + 1}" />
                 </div>
-              `,
-            )
+              `;
+            })
             .join('')
         : '';
 
@@ -271,13 +272,14 @@ export function buildPortfolioExportHtml(data: ExportData): string {
                   // actually useful as a real record of the document.
                   const pdfPages = e.imageDataUrls?.length
                     ? e.imageDataUrls
-                        .map(
-                          (url, index) => `
-                            <div class="fixed-page-image-wrap">
+                        .map((url, index) => {
+                          const isLandscapePage = e.pdfPageIsLandscape?.[index] ?? false;
+                          return `
+                            <div class="fixed-page-image-wrap${isLandscapePage ? ' fixed-page-image-wrap-half' : ''}">
                               <img class="fixed-page-image" src="${url}" alt="${escapeHtml(e.title)} — ${index + 1}" />
                             </div>
-                          `,
-                        )
+                          `;
+                        })
                         .join('')
                     : '';
 
@@ -540,6 +542,16 @@ export function buildPortfolioExportHtml(data: ExportData): string {
     page-break-inside: avoid;
     padding-top: 10px;
   }
+  /* Landscape (wide) pages/photos: shown at roughly half the page width so
+     two land side by side instead of one wide page wasting the rest of
+     the row. Portrait pages stay full width, one per row (unaffected). */
+  .fixed-page-image-wrap-half {
+    display: inline-block;
+    width: 48%;
+    vertical-align: top;
+    margin-left: 1%;
+    margin-right: 1%;
+  }
   .fixed-page-image {
     width: 100%;
     height: auto;
@@ -621,10 +633,6 @@ export function buildPortfolioExportHtml(data: ExportData): string {
       <div class="cover-subtitle">وفق نموذج تقييم أداء الوظائف التعليمية — الدليل المهني الجديد</div>
       <div class="cover-field">اسم المعلم: ${escapeHtml(data.teacherName)}</div>
       ${data.subject ? `<div class="cover-field">المادة: ${escapeHtml(data.subject)}</div>` : ''}
-      <div class="cover-stat">
-        <div class="percent">${overallPercent}%</div>
-        <div class="label">${data.coveredIndicators} من ${data.totalIndicators} مؤشر مغطى</div>
-      </div>
       <div class="cover-date">تاريخ الإصدار: ${date}</div>
     </div>
 

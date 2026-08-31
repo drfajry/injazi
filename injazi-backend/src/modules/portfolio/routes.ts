@@ -102,6 +102,10 @@ async function renderEvidenceForExport(evidence: {
 
   let imageDataUrl: string | null = null;
   let imageDataUrls: string[] | null = null;
+  // Per-page orientation for rendered PDF pages, parallel to imageDataUrls
+  // — each PDF page can genuinely be portrait or landscape (a report vs. a
+  // wide certificate/table scan) regardless of the others.
+  let pdfPageIsLandscape: boolean[] | null = null;
   let tableHtml: string | null = null;
   let imageIsLandscape = false;
 
@@ -121,6 +125,10 @@ async function renderEvidenceForExport(evidence: {
     const rendered = await renderAllPdfPagesToImages(Buffer.from(file.data));
     if (rendered.length > 0) {
       imageDataUrls = rendered.map((page) => `data:image/png;base64,${page}`);
+      // Same landscape-vs-portrait logic as photos: a wide PDF page (e.g.
+      // a landscape-oriented certificate) pairs two-per-row; a normal
+      // portrait page/report stays full width, one per page.
+      pdfPageIsLandscape = rendered.map((page) => isLandscape(Buffer.from(page, 'base64')));
     }
   } else if (isExcel && file?.data) {
     tableHtml = renderExcelAsHtmlTable(Buffer.from(file.data));
@@ -147,6 +155,7 @@ async function renderEvidenceForExport(evidence: {
     description: evidence.description,
     imageDataUrl,
     imageDataUrls,
+    pdfPageIsLandscape,
     imageIsLandscape,
     tableHtml,
     fileTypeLabel,
