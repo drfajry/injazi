@@ -48,6 +48,17 @@ evidenceRouter.get('/', requireAuth, async (req, res, next) => {
       return { ...item, source };
     });
 
+    // Pending-review items (SUGGESTED) float to the top — a teacher
+    // opening the dashboard should see what needs a decision before
+    // already-approved evidence, regardless of upload date. A stable JS
+    // sort here (not Prisma's orderBy) since priority isn't tied to the
+    // enum's declared order.
+    withSourceLabel.sort((a, b) => {
+      const aPending = a.status === 'SUGGESTED' ? 0 : 1;
+      const bPending = b.status === 'SUGGESTED' ? 0 : 1;
+      return aPending - bPending;
+    });
+
     res.json({ data: withSourceLabel });
   } catch (error) {
     next(error);

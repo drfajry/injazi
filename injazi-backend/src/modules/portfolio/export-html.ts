@@ -214,17 +214,18 @@ export function buildPortfolioExportHtml(data: ExportData): string {
       // Multi-page PDFs (e.g. a 2-page CV) render every page at full size,
       // each as its own page — previously only the first page was shown,
       // squeezed into a small thumbnail meant for quick-preview evidence,
-      // not a complete standalone document.
+      // not a complete standalone document. Always full width — a
+      // half-width "two per row" layout for landscape pages looked
+      // cramped and left an awkward gap next to short/incomplete pairs.
       const multiPageImages = e.imageDataUrls?.length
         ? e.imageDataUrls
-            .map((url, index) => {
-              const isLandscapePage = e.pdfPageIsLandscape?.[index] ?? false;
-              return `
-                <div class="fixed-page-image-wrap${isLandscapePage ? ' fixed-page-image-wrap-half' : ''}">
+            .map(
+              (url, index) => `
+                <div class="fixed-page-image-wrap">
                   <img class="fixed-page-image" src="${url}" alt="${escapeHtml(e.title)} — ${index + 1}" />
                 </div>
-              `;
-            })
+              `,
+            )
             .join('')
         : '';
 
@@ -273,14 +274,13 @@ export function buildPortfolioExportHtml(data: ExportData): string {
                   // actually useful as a real record of the document.
                   const pdfPages = e.imageDataUrls?.length
                     ? e.imageDataUrls
-                        .map((url, index) => {
-                          const isLandscapePage = e.pdfPageIsLandscape?.[index] ?? false;
-                          return `
-                            <div class="fixed-page-image-wrap${isLandscapePage ? ' fixed-page-image-wrap-half' : ''}">
+                        .map(
+                          (url, index) => `
+                            <div class="fixed-page-image-wrap">
                               <img class="fixed-page-image" src="${url}" alt="${escapeHtml(e.title)} — ${index + 1}" />
                             </div>
-                          `;
-                        })
+                          `,
+                        )
                         .join('')
                     : '';
 
@@ -307,7 +307,7 @@ export function buildPortfolioExportHtml(data: ExportData): string {
                     : '';
 
                   return `
-                    <div class="evidence-item${e.imageIsLandscape ? ' evidence-item-half' : ''}">
+                    <div class="evidence-item">
                       <div class="evidence-title">📎 ${escapeHtml(e.title)} ${platformBadge}</div>
                       ${pdfPages}
                       ${image}
@@ -533,21 +533,6 @@ export function buildPortfolioExportHtml(data: ExportData): string {
     margin: 6px 0;
     display: block;
   }
-  /* Landscape (wide) photos: the whole evidence block (caption + photo) is
-     shown at roughly half the page width, so two land side by side on the
-     same row instead of one wide photo wasting an almost-empty page. */
-  .evidence-item-half {
-    display: inline-block;
-    width: 48%;
-    vertical-align: top;
-    margin-left: 1%;
-    margin-right: 1%;
-  }
-  .evidence-item-half .evidence-image {
-    max-height: 220px;
-    width: 100%;
-    object-fit: contain;
-  }
   /* Fixed pages (CV, schedule, etc.) and multi-page PDF evidence show at
      full document size, not a small thumbnail. Deliberately NOT forcing a
      page break before each one — a forced break left large empty gaps at
@@ -558,16 +543,6 @@ export function buildPortfolioExportHtml(data: ExportData): string {
   .fixed-page-image-wrap {
     page-break-inside: avoid;
     padding-top: 10px;
-  }
-  /* Landscape (wide) pages/photos: shown at roughly half the page width so
-     two land side by side instead of one wide page wasting the rest of
-     the row. Portrait pages stay full width, one per row (unaffected). */
-  .fixed-page-image-wrap-half {
-    display: inline-block;
-    width: 48%;
-    vertical-align: top;
-    margin-left: 1%;
-    margin-right: 1%;
   }
   .fixed-page-image {
     width: 100%;
@@ -612,16 +587,31 @@ export function buildPortfolioExportHtml(data: ExportData): string {
   .no-evidence { margin: 4px 0 0 0; font-size: 12px; color: #CBD5E1; }
 
   .print-hint {
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     background: #FEF9C3;
     color: #854D0E;
-    padding: 10px;
+    padding: 10px 16px;
     border-radius: 8px;
     margin-bottom: 20px;
     font-size: 13px;
     position: relative;
     z-index: 1;
   }
+  .print-hint-btn {
+    background: linear-gradient(90deg, #359B77, #093B64);
+    color: white;
+    border: none;
+    border-radius: 999px;
+    padding: 8px 22px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .print-hint-btn:hover { filter: brightness(1.08); }
   @media print { .print-hint { display: none; } }
 </style>
 </head>
@@ -633,7 +623,10 @@ export function buildPortfolioExportHtml(data: ExportData): string {
   </svg>
 
   <div class="page-padding">
-    <div class="print-hint">استخدم Ctrl+P (أو ⌘+P) ثم اختر "حفظ كـ PDF" لتنزيل هذا الملف.</div>
+    <div class="print-hint">
+      <span>اضغط الزر لطباعة الملف أو حفظه كـ PDF مباشرة.</span>
+      <button class="print-hint-btn" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+    </div>
 
     <div class="letterhead">
       ${ministryLogoHtml}
