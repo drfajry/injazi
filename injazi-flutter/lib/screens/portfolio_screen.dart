@@ -179,6 +179,85 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     }
   }
 
+  bool _sharingWithColleague = false;
+
+  Future<void> _shareWithColleague() async {
+    setState(() => _sharingWithColleague = true);
+
+    try {
+      final url = await widget.api.shareWithColleague();
+
+      if (!mounted) return;
+
+      await showDialog<void>(
+        context: context,
+        builder: (context) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            title: const Text('مشاركة مع زميل'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'هذا الرابط يعرض ملفك كامل بالشواهد الحقيقية — أرسله لزميل تثق فيه بس، ما ننصح تنشره بشكل عام. أي شخص يملك الرابط يقدر يفتحه بدون تسجيل دخول.',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                ),
+                const SizedBox(height: 12),
+                SelectableText(url, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: url));
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('تم نسخ الرابط.')),
+                  );
+                },
+                child: const Text('نسخ الرابط'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await _stopSharingWithColleague();
+                },
+                style: TextButton.styleFrom(foregroundColor: const Color(0xFFDC2626)),
+                child: const Text('إلغاء المشاركة'),
+              ),
+              FilledButton(onPressed: () => Navigator.pop(context), child: const Text('تم')),
+            ],
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذّر إنشاء رابط المشاركة: ${e.toString().replaceFirst('Exception: ', '')}')),
+      );
+    } finally {
+      if (mounted) setState(() => _sharingWithColleague = false);
+    }
+  }
+
+  Future<void> _stopSharingWithColleague() async {
+    try {
+      await widget.api.stopSharingWithColleague();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم إلغاء رابط المشاركة مع الزميل.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذّر إلغاء المشاركة: ${e.toString().replaceFirst('Exception: ', '')}')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -278,6 +357,18 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.share_outlined),
                     label: const Text('مشاركة رابط عام'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _sharingWithColleague ? null : _shareWithColleague,
+                    style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white)),
+                    icon: _sharingWithColleague
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.person_outline),
+                    label: const Text('مشاركة مع زميل (كامل الشواهد)'),
                   ),
                 ),
               ],

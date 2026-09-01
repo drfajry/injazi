@@ -409,6 +409,53 @@ portfolioRouter.post('/unpublish', requireAuth, async (req, res, next) => {
 });
 
 /**
+ * Generates a SEPARATE, private link for sharing the FULL portfolio (real
+ * evidence, files, content — same as the printed export) with a specific
+ * colleague, distinct from the anonymous public link which only shows
+ * percentages. This one still requires no login to view — the link itself
+ * is the access control, so it should only be shared with people the
+ * teacher actually intends to show their evidence to, not posted publicly.
+ */
+portfolioRouter.post('/share', requireAuth, async (req, res, next) => {
+  try {
+    const userId = getAuthenticatedUserId(req);
+
+    const existing = await prisma.portfolioVersion.findFirst({
+      where: { userId, shareSlug: { not: null } },
+    });
+
+    if (existing) {
+      return res.json({ data: { slug: existing.shareSlug } });
+    }
+
+    const count = await prisma.portfolioVersion.count({ where: { userId } });
+    let slug = generateSlug();
+
+    while (await prisma.portfolioVersion.findUnique({ where: { shareSlug: slug } })) {
+      slug = generateSlug();
+    }
+
+    const version = await prisma.portfolioVersion.create({
+      data: { userId, versionNo: count + 1, shareSlug: slug },
+    });
+
+    res.status(201).json({ data: { slug: version.shareSlug } });
+  } catch (error) { next(error); }
+});
+
+/** Revokes the colleague-share link — future visits to it will get a 404. */
+portfolioRouter.post('/unshare', requireAuth, async (req, res, next) => {
+  try {
+    const userId = getAuthenticatedUserId(req);
+    await prisma.portfolioVersion.updateMany({
+      where: { userId, shareSlug: { not: null } },
+      data: { shareSlug: null },
+    });
+    res.status(204).send();
+  } catch (error) { next(error); }
+});
+
+/**
  * Public, unauthenticated view. Deliberately minimal: teacher name +
  * overall completion percentage + a checklist of criteria/indicators
  * covered or not. No evidence titles, descriptions, or files — those stay
@@ -451,6 +498,43 @@ publicPortfolioRouter.get('/:slug', async (req, res, next) => {
           covered: coveredIndicatorIds.has(indicator.id),
         })),
       })),
+    });
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (error) { next(error); }
+});
+
+/**
+ * Full-detail colleague-share view — unauthenticated (the slug itself is
+ * the access control), but shows the REAL evidence, files, and content,
+ * reusing the exact same rendering as the printed export. Unlike the
+ * anonymous public link above, this is meant for the teacher to hand
+ * directly to one specific colleague, not to post publicly.
+ */
+publicPortfolioRouter.get('/share/:slug', async (req, res, next) => {
+  try {
+    const slug = z.string().min(1).parse(req.params.slug);
+
+    const version = await prisma.portfolioVersion.findUnique({
+      where: { shareSlug: slug },
+    });
+
+    if (!version) {
+      res.status(404).setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.send(buildPublicNotFoundHtml());
+    }
+
+    const [data, profile] = await Promise.all([
+      buildPortfolioExportData(version.userId),
+      prisma.teacherProfile.findUnique({ where: { userId: version.userId }, include: { school: true } }),
+    ]);
+
+    const html = buildPortfolioExportHtml({
+      teacherName: profile?.name ?? 'المعلم',
+      schoolName: profile?.school?.name ?? null,
+      subject: profile?.subject ?? null,
+      ...data,
     });
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');

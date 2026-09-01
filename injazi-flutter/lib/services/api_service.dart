@@ -692,6 +692,42 @@ class ApiService {
     }
   }
 
+  /// A SEPARATE link from publishPortfolio — that one shows only the
+  /// overall percentage to anyone; this one shows the full portfolio
+  /// (real evidence, files) for sharing privately with one colleague.
+  Future<String> shareWithColleague() async {
+    final token = await getAccessToken();
+
+    final response = await _client.post(
+      Uri.parse('$baseUrl/me/portfolio/share'),
+      headers: _authorizedHeaders(token),
+      body: jsonEncode({}),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessage(response.body) ?? 'Failed to create share link';
+      throw Exception(message);
+    }
+
+    final data = Map<String, dynamic>.from(jsonDecode(response.body));
+    final slug = (data['data'] as Map<String, dynamic>)['slug'] as String;
+    return '$baseUrl/public/portfolio/share/$slug';
+  }
+
+  Future<void> stopSharingWithColleague() async {
+    final token = await getAccessToken();
+
+    final response = await _client.post(
+      Uri.parse('$baseUrl/me/portfolio/unshare'),
+      headers: _authorizedHeaders(token),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = _extractErrorMessage(response.body) ?? 'Failed to revoke share link';
+      throw Exception(message);
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getSources() async {
     final token = await getAccessToken();
 
