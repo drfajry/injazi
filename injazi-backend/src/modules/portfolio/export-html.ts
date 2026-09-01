@@ -547,7 +547,16 @@ export function buildPortfolioExportHtml(data: ExportData): string {
   .fixed-page-image {
     width: 100%;
     height: auto;
+    /* Guarantees this can never be taller than one printed page, even if
+       the source PDF page has an unusual aspect ratio — without this, an
+       intrinsically-tall image gets physically sliced across two pages
+       (a page-break-inside rule can't prevent that; the image itself
+       has to be capped). object-fit:contain shrinks it proportionally
+       rather than cropping or distorting it. */
+    max-height: 230mm;
+    object-fit: contain;
     display: block;
+    margin: 0 auto;
     border-radius: 6px;
     border: 1px solid #E2E8F0;
   }
