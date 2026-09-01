@@ -256,10 +256,16 @@ versionNo      Int
 generatedAt    DateTime @default(now())
 pdfKey         String?
 publicSlug     String?  @unique
+// A SEPARATE link from publicSlug — publicSlug shows only the overall
+// percentage/checkmarks to anyone; this one shows the full portfolio
+// (real evidence, files, content) for sharing privately with a specific
+// colleague, not meant for wide/anonymous distribution.
+shareSlug      String?  @unique
 visibility     String   @default("PRIVATE")
 user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 @@unique([userId, versionNo])
 @@index([publicSlug])
+@@index([shareSlug])
 }
 
 model Subscription {
